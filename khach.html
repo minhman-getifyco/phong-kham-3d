@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Phòng khám BS. Khánh Minh · 3D</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(#6fa8e6 0%,#bcd8f2 55%,#e9e3d6 100%);
+    font:15px/1.45 "Trebuchet MS","Segoe UI",Roboto,sans-serif;color:#1d2a33;user-select:none;-webkit-user-select:none}
+  canvas{display:block;touch-action:none}
+  .hud{position:fixed;pointer-events:none;inset:0}
+  .hud > *{pointer-events:auto}
+  #tasks{position:absolute;left:14px;top:14px;background:#fffdf6ee;border:3px solid #1d2a33;border-radius:12px;
+    padding:10px 14px;min-width:200px;box-shadow:0 4px 0 #1d2a33}
+  #tasks h1{font-size:16px;margin:0 0 6px;letter-spacing:.02em}
+  #tasks ul{list-style:none;margin:0;padding:0}
+  #tasks li{padding:2px 0;color:#5b6770}
+  #tasks li.ok{color:#2f7d3b;font-weight:700}
+  #tasks li.ok::before{content:"✓ "}
+  #tasks li:not(.ok)::before{content:"○ "}
+  #topright{position:absolute;right:14px;top:14px;display:flex;gap:8px}
+  .pill{background:#fffdf6;border:3px solid #1d2a33;border-radius:999px;padding:6px 14px;font:inherit;font-weight:700;
+    cursor:pointer;box-shadow:0 3px 0 #1d2a33;color:#1d2a33}
+  .pill:active{transform:translateY(2px);box-shadow:0 1px 0 #1d2a33}
+  #prompt{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);background:#1d2a33;color:#fff;
+    padding:8px 16px;border-radius:999px;font-weight:700;display:none;white-space:nowrap}
+  #prompt kbd{background:#ffd23a;color:#1d2a33;border-radius:5px;padding:0 7px;margin-right:6px}
+  #dlg{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(620px,calc(100% - 28px));
+    background:#fffdf6;border:3px solid #1d2a33;border-radius:14px;padding:14px 18px 12px;box-shadow:0 5px 0 #1d2a33;display:none}
+  #dlg .nm{position:absolute;top:-16px;left:14px;background:#ffd23a;border:3px solid #1d2a33;border-radius:8px;
+    padding:1px 10px;font-weight:800;font-size:14px}
+  #dlg .tx{font-size:18px;margin:6px 0 4px;min-height:26px}
+  #dlg .tr{font-size:14px;color:#5b6770;font-style:italic}
+  #dlg .ch{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  #dlg .ch button{font:inherit;font-weight:700;border:2px solid #1d2a33;border-radius:9px;background:#fff;padding:8px 12px;
+    cursor:pointer;min-height:40px;color:#1d2a33}
+  #dlg .ch button:hover{background:#ffd23a}
+  #dlg .hint{font-size:12px;color:#8a949a;text-align:right;margin-top:6px}
+  #lift{position:absolute;left:50%;top:18px;transform:translateX(-50%);display:none;font-size:18px;
+    background:#e5484d;color:#fff;border-color:#1d2a33;animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{50%{transform:translateX(-50%) scale(1.07)}}
+  #help{position:absolute;right:14px;bottom:14px;background:#fffdf6dd;border:2px solid #1d2a33;border-radius:10px;
+    padding:8px 12px;font-size:13px;max-width:230px}
+  #toast{position:absolute;left:50%;top:80px;transform:translateX(-50%);background:#1d2a33;color:#fff;border-radius:10px;
+    padding:8px 16px;font-weight:700;opacity:0;transition:opacity .3s}
+  .paw{position:fixed;font-size:90px;pointer-events:none;animation:paw 1.6s ease-out forwards}
+  @keyframes paw{0%{transform:scale(2.2) rotate(-20deg);opacity:0}15%{transform:scale(1) rotate(-12deg);opacity:1}
+    80%{opacity:1}100%{opacity:0}}
+  #joy{position:absolute;left:24px;bottom:24px;width:120px;height:120px;border-radius:50%;background:#1d2a3326;
+    border:3px solid #1d2a3388;display:none;touch-action:none}
+  #knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:#ffd23a;border:3px solid #1d2a33}
+  #act{position:absolute;right:24px;bottom:40px;width:78px;height:78px;border-radius:50%;font-size:16px;display:none}
+  body.touch #joy,body.touch #act{display:block}
+  body.touch #help{display:none}
+  body.touch #dlg{bottom:160px}
+  #loading{position:fixed;inset:0;display:grid;place-items:center;font-weight:800;font-size:22px}
+</style>
+</head>
+<body>
+<div id="loading">Đang xếp gạch…</div>
+<div class="hud">
+  <div id="tasks">
+    <h1>Việc cần làm</h1>
+    <ul id="tasklist"></ul>
+  </div>
+  <div id="topright">
+    <button class="pill" id="snd">🔊</button>
+  </div>
+  <button class="pill" id="lift">🎈 Thả nhà bay lên! (F)</button>
+  <div id="prompt"></div>
+  <div id="toast"></div>
+  <div id="dlg"><span class="nm" id="dnm"></span><div class="tx" id="dtx"></div><div class="tr" id="dtr"></div>
+    <div class="ch" id="dch"></div><div class="hint" id="dhint"></div></div>
+  <div id="help"><b>Điều khiển</b><br>WASD / mũi tên: đi · Shift: chạy<br>Kéo chuột: xoay camera · Lăn chuột: zoom<br>E hoặc Space: nói chuyện / tương tác</div>
+  <div id="joy"><div id="knob"></div></div>
+  <button class="pill" id="act">E</button>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const T = THREE;
+
+/* ================= renderer / scene ================= */
+const renderer = new T.WebGLRenderer({antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = T.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+
+const scene = new T.Scene();
+scene.fog = new T.Fog(0xcfe0ef, 70, 170);
+const camera = new T.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 400);
+
+scene.add(new T.HemisphereLight(0xe8f3ff, 0x6f8f4c, 1.25));
+const sun = new T.DirectionalLight(0xfff3df, 2.4);
+sun.position.set(28, 48, 30);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, {left:-42, right:42, top:42, bottom:-42, near:1, far:140});
+sun.shadow.bias = -0.0006;
+scene.add(sun);
+
+/* ================= LEGO helpers ================= */
+const MATS = {};
+function mat(color, key){
+  const k = color + (key||"");
+  if(!MATS[k]){
+    MATS[k] = new T.MeshStandardMaterial({color, roughness:0.38, metalness:0.0});
+    if(key === "front"){ MATS[k].transparent = true; }
+  }
+  return MATS[k];
+}
+const STUD = new T.CylinderGeometry(0.3, 0.3, 0.2, 14);
+function brick(w, h, d, color, o){
+  o = o || {};
+  const g = new T.Group();
+  const m = o.mat || mat(color);
+  const box = new T.Mesh(new T.BoxGeometry(w, h, d), m);
+  box.position.y = h/2; box.castShadow = o.shadow !== false; box.receiveShadow = true;
+  g.add(box);
+  if(o.studs !== false){
+    const nx = Math.max(1, Math.round(w)), nz = Math.max(1, Math.round(d));
+    const inst = new T.InstancedMesh(STUD, m, nx*nz);
+    const M = new T.Matrix4(); let i = 0;
+    for(let a=0;a<nx;a++) for(let b=0;b<nz;b++){
+      M.makeTranslation(-w/2 + (a+0.5)*w/nx, h+0.1, -d/2 + (b+0.5)*d/nz);
+      inst.setMatrixAt(i++, M);
+    }
+    inst.castShadow = true; inst.receiveShadow = true;
+    g.add(inst);
+  }
+  return g;
+}
+function put(o, x, y, z, parent){ o.position.set(x, y, z); (parent||scene).add(o); return o; }
+function mesh(geo, color, parent, x, y, z, m){
+  const me = new T.Mesh(geo, m || mat(color));
+  me.castShadow = true; me.receiveShadow = true;
+  me.position.set(x||0, y||0, z||0); (parent||scene).add(me); return me;
+}
+const BOX = (w,h,d) => new T.BoxGeometry(w,h,d);
+
+function canvasTex(w, h, draw){
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+function sign(text, w, h, bg, fg, parent, x, y, z, ry){
+  const tex = canvasTex(512, Math.round(512*h/w), (c, W, H) => {
+    c.fillStyle = bg; c.fillRect(0,0,W,H);
+    c.strokeStyle = fg; c.lineWidth = 10; c.strokeRect(8,8,W-16,H-16);
+    c.fillStyle = fg; c.textAlign = "center"; c.textBaseline = "middle";
+    let fs = H*0.5; c.font = `bold ${fs}px "Trebuchet MS",sans-serif`;
+    while(c.measureText(text).width > W*0.86 && fs > 10){ fs -= 2; c.font = `bold ${fs}px "Trebuchet MS",sans-serif`; }
+    c.fillText(text, W/2, H/2+2);
+  });
+  const m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshStandardMaterial({map:tex, roughness:.5}));
+  m.position.set(x, y, z); m.rotation.y = ry||0; (parent||scene).add(m); return m;
+}
+
+/* ================= collisions ================= */
+const COLL = [];
+function solid(x0, x1, z0, z1){ COLL.push({x0, x1, z0, z1}); }
+
+/* ================= ground ================= */
+const COL = {
+  grass:0x4f9a3a, plate:0x5aa83f, tan:0xe4cd9e, orange:0xf08a24, green:0xa5ca18, yellow:0xffd23a,
+  pink:0xd05098, blue:0x6aa9e0, roof:0x59646d, roofD:0x454e56, brown:0x6b3a1e, red:0xb4232a,
+  white:0xf4f4f0, glass:0x9fd3ef, grey:0xa3a9ad, dark:0x2b3036, peach:0xf3b98c
+};
+const outside = new T.Mesh(new T.PlaneGeometry(400, 400), new T.MeshStandardMaterial({color:0x7fae5a, roughness:1}));
+outside.rotation.x = -Math.PI/2; outside.position.y = -0.42; outside.receiveShadow = true; scene.add(outside);
+put(brick(48, 0.4, 30, COL.plate), 0, -0.4, 1);                         // baseplate yard x -24..24 z -14..16
+put(brick(70, 0.3, 10, COL.grey, {studs:false}), 0, -0.4, 21.2);       // vỉa hè
+put(brick(70, 0.31, 8, 0x3c4146, {studs:false}), 0, -0.41, 31);         // đường
+for(let x=-32;x<=32;x+=6) put(brick(3, 0.32, 0.4, 0xffffff, {studs:false}), x, -0.41, 31);
+// lối đi
+for(let z=8; z<16; z+=2) put(brick(3, 0.22, 1.9, (z/2)%2 ? COL.tan : 0xd8bd88), -5, 0, z+1);
+
+/* ================= fence ================= */
+(function(){
+  const picket = BOX(0.35, 1.6, 0.25);
+  const pos = [];
+  const seg = (x0,z0,x1,z1) => {
+    const L = Math.hypot(x1-x0, z1-z0), n = Math.floor(L/0.8);
+    for(let i=0;i<=n;i++) pos.push([x0+(x1-x0)*i/n, z0+(z1-z0)*i/n, Math.atan2(x1-x0, z1-z0)]);
+    const rail = put(brick(L, 0.25, 0.2, COL.tan, {studs:false}), (x0+x1)/2, 0.9, (z0+z1)/2);
+    rail.rotation.y = Math.atan2(x1-x0, z1-z0) - Math.PI/2;
+    rail.children[0].castShadow = false;
+  };
+  seg(-24,16,-7,16); seg(-3,16,24,16); seg(-24,-14,24,-14); seg(-24,-14,-24,16); seg(24,-14,24,16);
+  const inst = new T.InstancedMesh(picket, mat(0xf7efe0), pos.length);
+  const M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(1,1,1);
+  pos.forEach((p,i) => { Q.setFromEuler(new T.Euler(0, p[2], 0)); M.compose(new T.Vector3(p[0], 0.8, p[1]), Q, S); inst.setMatrixAt(i, M); });
+  inst.castShadow = true; scene.add(inst);
+  solid(-24,-7,15.7,16.3); solid(-3,24,15.7,16.3); solid(-24,24,-14.3,-13.7); solid(-24.3,-23.7,-14,16); solid(23.7,24.3,-14,16);
+  // cột cổng
+  put(brick(1,2.6,1,COL.white), -7.5, 0, 16); put(brick(1,2.6,1,COL.white), -2.5, 0, 16);
+  solid(-8,-7,15.5,16.5); solid(-3,-2,15.5,16.5);
+})();
+
+/* ================= trees, bushes, flowers ================= */
+function tree(x, z, s){
+  s = s||1;
+  put(brick(0.9, 2.2*s, 0.9, 0x7a4a24), x, 0, z);
+  const g = new T.Group(); put(g, x, 2.0*s, z);
+  [[0,0,0,1.6],[0.9,0.6,0.3,1.1],[-0.8,0.5,-0.4,1.2],[0.1,1.4,0.2,1.1],[-0.2,0.4,0.9,1.0]].forEach(p =>
+    mesh(new T.SphereGeometry(p[3]*s, 14, 10), 0x3f8a2e, g, p[0]*s, p[1]*s, p[2]*s));
+  solid(x-0.6, x+0.6, z-0.6, z+0.6);
+}
+function bush(x, z){
+  const g = new T.Group(); put(g, x, 0, z);
+  mesh(new T.SphereGeometry(0.9, 12, 8), 0x5f9e2f, g, 0, 0.6, 0);
+  mesh(new T.SphereGeometry(0.7, 12, 8), 0x6aab36, g, 0.7, 0.5, 0.2);
+  mesh(new T.SphereGeometry(0.6, 12, 8), 0x58962a, g, -0.6, 0.45, -0.1);
+}
+tree(-18,-5,1.1); tree(18,5,1); tree(14,-11,0.9); tree(-20,9,0.9); tree(20,-6,0.8);
+[[-11,6.5],[11,7.5],[-12,-3],[12,-5],[0.5,8.3],[-21,13],[21,13]].forEach(p => bush(p[0], p[1]));
+(function(){
+  const cols = [0xe5484d, 0xffd23a, 0xffffff, 0xd05098, 0x6aa9e0];
+  const geo = new T.CylinderGeometry(0.22, 0.22, 0.35, 10);
+  for(let i=0;i<70;i++){
+    const x = (Math.random()*44-22), z = (Math.random()*26-12);
+    if(Math.abs(x) < 12 && z > -9 && z < 10) continue;
+    if(Math.abs(x+5) < 2.5 && z > 7) continue;
+    mesh(geo, cols[i%cols.length], scene, x, 0.15, z);
+  }
+})();
+
+/* ================= house ================= */
+const house = new T.Group(); scene.add(house);
+const roofGroup = new T.Group(); house.add(roofGroup);
+const frontGroup = new T.Group(); house.add(frontGroup);
+const FM = c => mat(c, "front");
+
+put(brick(23, 0.4, 18.5, COL.plate, {studs:false}), 0, -0.4, 1.3, house);          // nền nhà (bay theo)
+put(brick(10, 0.21, 13, 0xf2e6c9, {studs:false}), -5, 0, 0, house);                // sàn sảnh
+put(brick(9, 0.21, 13, 0xc9a77a, {studs:false}), 5, 0, 0, house);                  // sàn phòng bác sĩ
+put(brick(5, 0.18, 1.8, 0xb07a4a, {studs:false}), -5, 0, 7.9, house);              // hiên
+
+const H = 6;
+function wallBox(x0, x1, z0, z1, y0, y1, color, parent, m){
+  const g = brick(x1-x0, y1-y0, z1-z0, color, {studs:false, mat:m});
+  return put(g, (x0+x1)/2, y0, (z0+z1)/2, parent||house);
+}
+// back, sides
+wallBox(-10, 0, -7, -6, 0, H, COL.orange); wallBox(0, 10, -7, -6, 0, 3, COL.green); wallBox(0, 10, -7, -6, 3, H, COL.yellow);
+wallBox(-10, -9, -6, 6, 0, H, COL.orange);
+wallBox(9, 10, -6, 6, 0, 3, COL.green); wallBox(9, 10, -6, 6, 3, H, COL.yellow);
+solid(-10,10,-7,-6); solid(-10,-9,-7,7); solid(9,10,-7,7);
+// tan columns lobby corners
+[[-10,6],[-10,-7]].forEach(p => wallBox(p[0]-0.2, p[0]+1.2, p[1]-0.2, p[1]+1.2, 0, H, COL.tan));
+// front lobby (z 6..7) with door gap x -6.5..-3.5
+wallBox(-10, -6.5, 6, 7, 0, H, COL.orange, frontGroup, FM(COL.orange));
+wallBox(-3.5, 0, 6, 7, 0, H, COL.orange, frontGroup, FM(COL.orange));
+wallBox(-6.5, -3.5, 6, 7, 4, H, COL.orange, frontGroup, FM(COL.orange));
+wallBox(-7, -6.5, 6, 7.2, 0, 4.2, COL.tan, frontGroup, FM(COL.tan));
+wallBox(-3.5, -3, 6, 7.2, 0, 4.2, COL.tan, frontGroup, FM(COL.tan));
+wallBox(-7, -3, 6, 7.2, 4, 4.4, COL.tan, frontGroup, FM(COL.tan));
+solid(-10,-6.5,6,7); solid(-3.5,0,6,7);
+// front wing (z 6..7)
+wallBox(0, 10, 6, 7, 0, 3, COL.green, frontGroup, FM(COL.green));
+wallBox(0, 10, 6, 7, 3, H, COL.yellow, frontGroup, FM(COL.yellow));
+solid(0,10,6,7);
+// bay window
+const bay = new T.Group(); put(bay, 5, 0, 7, frontGroup);
+put(brick(5, 3.2, 1.4, COL.green, {mat:FM(COL.green), studs:false}), 0, 0.4, 0.7, bay);
+put(brick(5.6, 0.4, 1.8, COL.peach, {mat:FM(COL.peach)}), 0, 3.6, 0.8, bay);
+put(brick(5.4, 0.4, 1.7, COL.peach, {mat:FM(COL.peach), studs:false}), 0, 0, 0.75, bay);
+solid(2.3,7.7,7,8.6);
+// wheel (như ảnh)
+const wheel = mesh(new T.CylinderGeometry(0.6,0.6,0.35,20), 0x8fa1ad, frontGroup, 1.2, 0.6, 7.25, FM(0x8fa1ad));
+wheel.rotation.x = Math.PI/2;
+// internal wall x -0.5..0.5 with gap z -1.5..1.5
+wallBox(-0.5, 0.5, -6, -1.5, 0, H, 0xf6e9cf, house, FM(0xf6e9cf)); wallBox(-0.5, 0.5, 1.5, 6, 0, H, 0xf6e9cf, house, FM(0xf6e9cf)); wallBox(-0.5, 0.5, -1.5, 1.5, 4.3, H, 0xf6e9cf, house, FM(0xf6e9cf));
+solid(-0.5,0.5,-6,-1.5); solid(-0.5,0.5,1.5,6);
+
+// windows
+function win(parent, x, y, z, w, h, ry, m){
+  const g = new T.Group(); g.position.set(x, y, z); g.rotation.y = ry||0; parent.add(g);
+  mesh(BOX(w, h, 0.2), COL.pink, g, 0, 0, 0, m ? FM(COL.pink) : null);
+  mesh(BOX(w-0.4, h-0.4, 0.22), COL.glass, g, 0, 0, 0.01, m ? FM(COL.glass) : null);
+  mesh(BOX(w+0.3, 0.25, 0.4), COL.tan, g, 0, -h/2-0.1, 0.1, m ? FM(COL.tan) : null);
+  return g;
+}
+win(frontGroup, -8.3, 2.5, 7.05, 1.6, 2.2, 0, true);
+win(frontGroup, -1.7, 2.5, 7.05, 1.6, 2.2, 0, true);
+win(bay, -1.6, 2.1, 1.45, 1.4, 1.8, 0, true); win(bay, 1.6, 2.1, 1.45, 1.4, 1.8, 0, true); win(bay, 0, 2.1, 1.45, 1.2, 1.8, 0, true);
+win(house, 10.05, 2.6, -2, 1.8, 2.2, Math.PI/2); win(house, 10.05, 2.6, 3, 1.8, 2.2, Math.PI/2);
+win(house, -10.05, 2.6, -2, 1.8, 2.2, -Math.PI/2);
+win(house, -5, 2.8, -7.05, 2, 2.2, Math.PI); win(house, 5, 2.8, -7.05, 2, 2.2, Math.PI);
+// door (open)
+const doorPivot = new T.Group(); doorPivot.position.set(-6.5, 0, 6.6); doorPivot.rotation.y = -1.25; frontGroup.add(doorPivot);
+mesh(BOX(3, 4, 0.25), COL.brown, doorPivot, 1.5, 2, 0, FM(COL.brown));
+mesh(new T.SphereGeometry(0.15, 10, 8), 0xd9a63a, doorPivot, 2.6, 2, 0.2, FM(0xd9a63a));
+sign("PHÒNG KHÁM BS. KHÁNH MINH", 5.6, 0.9, "#fffdf6", "#c4613a", frontGroup, -5, 5.15, 7.25);
+sign("TÂM AN", 3.6, 0.8, "#d05098", "#ffffff", frontGroup, 5, 5.0, 7.08);
+
+// lobby roof: stepped studded plates (hip)
+for(let i=0;i<5;i++){
+  put(brick(11.6 - 2*i, 0.6, 15 - 2*i, i%2 ? COL.roofD : COL.roof), -5.2 + i*0.25, H + i*0.6, 0, roofGroup);
+}
+// railing on lobby eave (như ảnh)
+for(let x=-10.2;x<=-0.4;x+=0.8) mesh(new T.CylinderGeometry(0.14,0.14,0.8,8), 0xf4eedf, roofGroup, x, H+0.4, 7.35);
+// dormer
+const dorm = new T.Group(); put(dorm, -5.5, H+2.4, 4.6, roofGroup);
+put(brick(2.2, 1.8, 1.4, COL.yellow), 0, 0, 0, dorm);
+win(dorm, 0, 0.95, 0.72, 1.4, 1.3, 0);
+const dr = mesh(new T.ConeGeometry(1.7, 1.2, 4), COL.dark, dorm, 0, 2.4, 0); dr.rotation.y = Math.PI/4;
+// chimney
+put(brick(1.4, 4.4, 1.4, COL.red), -1.4, H, -2, roofGroup);
+
+// wing gable roof (ridge along z)
+const RISE = 4.4, HALF = 5.6, SL = Math.hypot(HALF, RISE), ANG = Math.atan2(RISE, HALF);
+[-1, 1].forEach(s => {
+  const g = new T.Group(); g.position.set(5 + s*HALF/2, H + RISE/2, 0.2); g.rotation.z = -s*ANG; roofGroup.add(g);
+  put(brick(SL, 0.4, 15.4, COL.roof), 0, -0.2, 0, g);
+  const trim = mesh(BOX(SL+0.2, 0.5, 0.5), COL.blue, g, 0, 0.1, 7.75);
+});
+const gableShape = new T.Shape(); gableShape.moveTo(-5, 0); gableShape.lineTo(5, 0); gableShape.lineTo(0, RISE-0.2); gableShape.closePath();
+const gableGeo = new T.ExtrudeGeometry(gableShape, {depth:0.8, bevelEnabled:false});
+const gF = mesh(gableGeo, COL.yellow, roofGroup, 5, H, 6.2); const gB = mesh(gableGeo, COL.yellow, roofGroup, 5, H, -7);
+win(roofGroup, 5, H+1.5, 7.05, 1.4, 1.8, 0);
+put(brick(10.6, 0.5, 1.4, COL.yellow), 5, H-0.3, 7.1, roofGroup);
+
+/* ================= balloon cluster ================= */
+const BCOL = [0xe5484d, 0x4fc3e8, 0x7bd03b, 0xffd23a, 0xd05098, 0xff8a2a, 0x9b59d0, 0x2fbf9f];
+const balloonGeo = new T.SphereGeometry(0.75, 18, 14);
+const cluster = new T.Group(); put(cluster, 5, H + RISE + 6.5, 0.2, house);
+const anchor = new T.Vector3(5, H + RISE - 0.1, 0.2);
+mesh(new T.CylinderGeometry(0.12,0.12,1.2,8), COL.grey, house, anchor.x, anchor.y+0.5, anchor.z);
+const clusterBalloons = [];
+function addClusterBalloon(color, pos){
+  const b = new T.Group();
+  const s = mesh(balloonGeo, color, b, 0, 0, 0, new T.MeshStandardMaterial({color, roughness:.22, metalness:.05}));
+  s.scale.set(1, 1.15, 1);
+  mesh(new T.ConeGeometry(0.16, 0.25, 8), color, b, 0, -0.9, 0).rotation.x = Math.PI;
+  b.position.copy(pos); cluster.add(b);
+  b.userData.phase = Math.random()*6.28; b.userData.base = pos.clone();
+  clusterBalloons.push(b);
+  return b;
+}
+const stringMat = new T.LineBasicMaterial({color:0xffffff, transparent:true, opacity:.75});
+const stringGeo = new T.BufferGeometry();
+const strings = new T.LineSegments(stringGeo, stringMat); house.add(strings);
+function rebuildStrings(){
+  const arr = [];
+  clusterBalloons.forEach(b => {
+    const p = b.position.clone().add(cluster.position); p.y -= 1.0;
+    arr.push(anchor.x, anchor.y+1.1, anchor.z, p.x, p.y, p.z);
+  });
+  stringGeo.setAttribute("position", new T.Float32BufferAttribute(arr, 3));
+}
+(function(){
+  let n = 0;
+  for(let i=0;i<26;i++){
+    const r = 2.6 * Math.cbrt(Math.random()), th = Math.random()*6.28, ph = Math.acos(2*Math.random()-1);
+    addClusterBalloon(BCOL[n++ % BCOL.length], new T.Vector3(r*Math.sin(ph)*Math.cos(th), r*Math.cos(ph)*0.8, r*Math.sin(ph)*Math.sin(th)));
+  }
+})();
+
+// mailbox with balloons near gate (như ảnh)
+(function(){
+  const g = new T.Group(); put(g, -10, 0, 13.5);
+  put(brick(1.5, 0.4, 1.5, COL.tan), 0, 0, 0, g);
+  put(brick(0.4, 1.6, 0.4, COL.white, {studs:false}), 0, 0.4, 0, g);
+  put(brick(1.2, 0.8, 0.8, COL.white, {studs:false}), 0, 2.0, 0, g);
+  mesh(BOX(0.12, 0.6, 0.12), COL.red, g, 0.66, 2.7, 0);
+  [[0.9,4.4,0.3,0xe5484d],[-0.7,4.8,0,0x7bd03b],[0.1,5.3,-0.5,0xffd23a],[-0.3,4.2,0.7,0x4fc3e8]].forEach(p => {
+    const s = mesh(balloonGeo, p[3], g, p[0], p[1], p[2], new T.MeshStandardMaterial({color:p[3], roughness:.22}));
+    s.scale.set(.6,.7,.6);
+    const l = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0,2.4,0), new T.Vector3(p[0], p[1]-0.5, p[2])]), stringMat);
+    g.add(l);
+  });
+  solid(-10.8,-9.2,12.7,14.3);
+})();
+
+/* ================= faces ================= */
+function faceTex(o){
+  return canvasTex(256, 128, (c, W, Hh) => {
+    c.fillStyle = "#f7cf1f"; c.fillRect(0,0,W,Hh);
+    const cx = 128;
+    c.fillStyle = "#1b1b1b";
+    c.beginPath(); c.arc(cx-17, 52, 6.5, 0, 6.3); c.arc(cx+17, 52, 6.5, 0, 6.3); c.fill();
+    c.fillStyle = "#fff"; c.beginPath(); c.arc(cx-15, 50, 2, 0, 6.3); c.arc(cx+19, 50, 2, 0, 6.3); c.fill();
+    c.strokeStyle = "#1b1b1b"; c.lineWidth = 3.5; c.lineCap = "round";
+    if(o.lashes){ [[-17,1],[17,-1]].forEach(([dx,s]) => { c.beginPath(); c.moveTo(cx+dx-6*s, 46); c.lineTo(cx+dx-11*s, 41); c.stroke(); }); }
+    c.beginPath(); c.moveTo(cx-24, o.stern ? 40 : 38); c.lineTo(cx-10, o.stern ? 42 : 36); c.moveTo(cx+10, o.stern ? 42 : 36); c.lineTo(cx+24, o.stern ? 40 : 38); c.stroke();
+    if(o.mustache){
+      c.fillStyle = "#4a2c16"; c.beginPath(); c.ellipse(cx-9, 73, 12, 5, 0.25, 0, 6.3); c.ellipse(cx+9, 73, 12, 5, -0.25, 0, 6.3); c.fill();
+    }
+    c.strokeStyle = o.lips ? "#c2185b" : "#1b1b1b"; c.lineWidth = o.lips ? 5 : 4;
+    c.beginPath(); c.arc(cx, 70, 15, 0.18*Math.PI, 0.82*Math.PI); c.stroke();
+    if(o.blush){ c.fillStyle = "#f2a0a066"; c.beginPath(); c.arc(cx-30, 68, 7, 0, 6.3); c.arc(cx+30, 68, 7, 0, 6.3); c.fill(); }
+  });
+}
+
+/* ================= minifig ================= */
+const YEL = 0xf7cf1f;
+function makeFig(o){
+  const g = new T.Group();
+  const p = {};
+  [-1, 1].forEach(s => {
+    const piv = new T.Group(); piv.position.set(s*0.26, 1.2, 0); g.add(piv);
+    mesh(BOX(0.5, 1.2, 0.62), o.legs, piv, 0, -0.6, 0);
+    mesh(BOX(0.5, 0.25, 0.75), o.shoes || o.legs, piv, 0, -1.08, 0.07);
+    p[s < 0 ? "legL" : "legR"] = piv;
+  });
+  mesh(BOX(1.04, 0.28, 0.64), o.legs, g, 0, 1.33, 0);
+  const torsoGeo = new T.CylinderGeometry(0.42, 0.56, 1.05, 4, 1); torsoGeo.rotateY(Math.PI/4); torsoGeo.scale(1.35, 1, 0.75);
+  mesh(torsoGeo, o.shirt, g, 0, 2.0, 0);
+  if(o.coat){
+    mesh(BOX(1.12, 0.55, 0.7), o.coat, g, 0, 1.2, 0);
+    mesh(BOX(0.18, 0.95, 0.05), 0x2b3036, g, 0, 2.0, 0.42);
+    const st = mesh(new T.TorusGeometry(0.32, 0.04, 6, 20, Math.PI), 0x2b3036, g, 0, 2.38, 0.3); st.rotation.set(0, 0, Math.PI);
+    mesh(new T.CylinderGeometry(0.08,0.08,0.05,10), 0xb0b6ba, g, 0.15, 1.95, 0.42).rotation.x = Math.PI/2;
+  }
+  if(o.badge) mesh(BOX(0.22, 0.26, 0.05), 0xffd23a, g, 0.25, 2.15, 0.4);
+  if(o.belt) mesh(BOX(1.1, 0.12, 0.66), 0x1b1b1b, g, 0, 1.55, 0);
+  [-1, 1].forEach(s => {
+    const piv = new T.Group(); piv.position.set(s*0.7, 2.38, 0); g.add(piv);
+    const arm = mesh(BOX(0.3, 0.9, 0.36), o.coat || o.shirt, piv, 0, -0.42, 0); arm.rotation.z = s*0.12;
+    mesh(new T.CylinderGeometry(0.15, 0.15, 0.25, 12), YEL, piv, s*0.06, -0.95, 0.05);
+    p[s < 0 ? "armL" : "armR"] = piv;
+  });
+  mesh(new T.CylinderGeometry(0.2, 0.2, 0.15, 12), YEL, g, 0, 2.58, 0);
+  const head = new T.Group(); head.position.set(0, 2.65, 0); g.add(head);
+  const hm = mesh(new T.CylinderGeometry(0.42, 0.42, 0.78, 28), YEL, head, 0, 0.39, 0,
+    [new T.MeshStandardMaterial({map:faceTex(o.face||{}), roughness:.4}), mat(YEL), mat(YEL)]);
+  hm.rotation.y = Math.PI;
+  mesh(new T.CylinderGeometry(0.25, 0.25, 0.18, 14), YEL, head, 0, 0.86, 0);
+  if(o.hair === "long"){
+    const cap = mesh(new T.SphereGeometry(0.48, 20, 12, 0, Math.PI*2, 0, Math.PI/2), o.hairColor, head, 0, 0.7, 0);
+    cap.scale.y = 0.75;
+    mesh(BOX(0.92, 1.1, 0.35), o.hairColor, head, 0, 0.25, -0.3);
+    mesh(BOX(0.2, 0.75, 0.5), o.hairColor, head, -0.42, 0.4, -0.05);
+    mesh(BOX(0.2, 0.75, 0.5), o.hairColor, head, 0.42, 0.4, -0.05);
+    mesh(new T.SphereGeometry(0.22, 12, 10), o.hairColor, head, 0, 0.95, -0.35);
+  } else if(o.hair === "short"){
+    const cap = mesh(new T.SphereGeometry(0.47, 20, 12, 0, Math.PI*2, 0, Math.PI/2), o.hairColor, head, 0, 0.66, 0);
+    cap.scale.y = 0.65;
+    mesh(BOX(0.9, 0.35, 0.3), o.hairColor, head, 0, 0.6, -0.3);
+  }
+  if(o.cap){
+    mesh(new T.CylinderGeometry(0.47, 0.47, 0.3, 24), o.cap, head, 0, 0.88, 0);
+    mesh(new T.CylinderGeometry(0.52, 0.47, 0.12, 24), o.cap, head, 0, 1.05, 0);
+    mesh(BOX(0.7, 0.07, 0.35), 0x1b1b1b, head, 0, 0.75, 0.52);
+    mesh(BOX(0.18, 0.18, 0.05), 0xffd23a, head, 0, 0.9, 0.48);
+  }
+  p.head = head; p.group = g;
+  g.traverse(m => { if(m.isMesh) m.castShadow = true; });
+  return p;
+}
+
+/* ================= dog ================= */
+function makeDog(o){
+  const g = new T.Group(), p = {group:g, legs:[]};
+  const c = o.color;
+  mesh(BOX(0.85, 0.7, 1.4), c, g, 0, 0.95, 0);
+  [[-0.27,0.48],[0.27,0.48],[-0.27,-0.48],[0.27,-0.48]].forEach(q => {
+    const piv = new T.Group(); piv.position.set(q[0], 0.7, q[1]); g.add(piv);
+    mesh(BOX(0.25, 0.7, 0.25), c, piv, 0, -0.35, 0);
+    if(o.poodle) mesh(new T.SphereGeometry(0.2, 10, 8), c, piv, 0, -0.55, 0);
+    p.legs.push(piv);
+  });
+  const head = new T.Group(); head.position.set(0, 1.45, 0.72); g.add(head); p.head = head;
+  mesh(BOX(0.75, 0.68, 0.7), c, head, 0, 0.1, 0);
+  mesh(BOX(0.42, 0.32, 0.38), o.snout || c, head, 0, -0.04, 0.5);
+  mesh(BOX(0.18, 0.14, 0.08), 0x111111, head, 0, 0.08, 0.7);
+  [-0.18, 0.18].forEach(x => {
+    mesh(BOX(0.1, 0.12, 0.04), 0x111111, head, x, 0.24, 0.36);
+    mesh(BOX(0.04, 0.04, 0.02), 0xffffff, head, x+0.02, 0.27, 0.385);
+  });
+  const tongue = mesh(BOX(0.16, 0.05, 0.2), 0xe86a7c, head, 0, -0.22, 0.6); p.tongue = tongue;
+  if(o.poodle){
+    mesh(new T.SphereGeometry(0.36, 14, 10), c, head, 0, 0.5, -0.05);
+    [-1,1].forEach(s => mesh(new T.SphereGeometry(0.24, 12, 10), c, head, s*0.45, 0.0, -0.05));
+    mesh(new T.SphereGeometry(0.5, 14, 10), c, g, 0, 1.1, -0.35);
+  } else {
+    [-1,1].forEach(s => { const e = mesh(BOX(0.14, 0.5, 0.3), o.ear || c, head, s*0.44, 0.08, -0.05); e.rotation.z = s*0.25; });
+  }
+  const tail = new T.Group(); tail.position.set(0, 1.2, -0.68); g.add(tail); p.tail = tail;
+  const tm = mesh(BOX(0.15, 0.15, 0.65), c, tail, 0, 0, -0.3); tail.rotation.x = -0.8;
+  if(o.poodle) mesh(new T.SphereGeometry(0.22, 10, 8), c, tail, 0, 0, -0.65);
+  if(o.vest){
+    mesh(BOX(0.92, 0.6, 0.7), 0xffffff, g, 0, 0.98, 0.32);
+    mesh(BOX(0.06, 0.2, 0.06), 0x2fae5a, g, 0.47, 1.05, 0.42); mesh(BOX(0.06, 0.06, 0.2), 0x2fae5a, g, 0.47, 1.05, 0.42);
+    mesh(BOX(0.06, 0.2, 0.06), 0x2fae5a, g, -0.47, 1.05, 0.42); mesh(BOX(0.06, 0.06, 0.2), 0x2fae5a, g, -0.47, 1.05, 0.42);
+  }
+  if(o.bow){
+    const bw = new T.Group(); bw.position.set(0, 1.15, 0.92); g.add(bw);
+    [-1,1].forEach(s => { const c2 = mesh(new T.ConeGeometry(0.2, 0.35, 4), 0x8d959b, bw, s*0.18, 0, 0); c2.rotation.z = s*Math.PI/2; });
+    mesh(new T.SphereGeometry(0.09, 8, 6), 0x6d757b, bw, 0, 0, 0.02);
+  }
+  g.traverse(m => { if(m.isMesh) m.castShadow = true; });
+  return p;
+}
+
+/* ================= interiors ================= */
+// Nhà thuốc (quầy Mực)
+put(brick(5.8, 1.7, 1, COL.white), -6, 0, -3.5, house);
+put(brick(5.8, 0.25, 1.2, 0x2fae5a, {studs:false}), -6, 1.7, -3.5, house);
+solid(-8.9, -3.1, -4, -3);
+put(brick(2, 1.1, 1.8, COL.tan), -6, 0, -5.0, house);
+(function(){
+  const sh = new T.Group(); put(sh, -6, 0, -5.85, house);
+  put(brick(7, 0.2, 0.5, COL.white, {studs:false}), 0, 2.4, 0, sh);
+  put(brick(7, 0.2, 0.5, COL.white, {studs:false}), 0, 3.6, 0, sh);
+  put(brick(7, 0.2, 0.5, COL.white, {studs:false}), 0, 4.8, 0, sh);
+  const jc = [0xe5484d, 0x4fc3e8, 0x7bd03b, 0xffd23a, 0xd05098, 0xff8a2a];
+  [2.6, 3.8, 5.0].forEach((y, r) => { for(let i=0;i<10;i++) if((i+r)%4) mesh(new T.CylinderGeometry(0.2,0.2,0.6,10), jc[(i+r)%jc.length], sh, -3.1+i*0.68, y+0.3, 0); });
+})();
+sign("QUẦY CỦA MỰC · WOOF", 4.2, 0.8, "#2fae5a", "#ffffff", house, -6, 5.5, -5.88);
+// bone toys on counter
+// Thu ngân (quầy Bông)
+put(brick(1, 1.7, 4.2, 0xd05098), -6.7, 0, 2, house);
+put(brick(1.2, 0.25, 4.4, COL.white, {studs:false}), -6.7, 1.7, 2, house);
+solid(-7.2, -6.2, -0.1, 4.1);
+put(brick(1.6, 1.1, 2, COL.tan), -8.1, 0, 2, house);
+mesh(BOX(0.8, 0.5, 0.9), COL.dark, house, -6.7, 2.2, 3.1);
+const scr = mesh(BOX(0.06, 0.45, 0.7), 0x7fe0a0, house, -6.3, 2.6, 3.1); 
+sign("QUẦY CỦA BÔNG", 3.6, 0.7, "#d05098", "#ffffff", house, -8.95, 4.6, 2, Math.PI/2);
+// lobby bench + plant + rug
+put(brick(3, 0.9, 1, COL.blue), -2.5, 0, -0.8, house); solid(-4, -1, -1.3, -0.3);
+put(brick(1, 1, 1, 0x9b5a2e), -1.4, 0, 5.2, house); bushAt(-1.4, 1.4, 5.2);
+function bushAt(x, y, z){ mesh(new T.SphereGeometry(0.6, 12, 8), 0x3f8a2e, house, x, y+0.3, z); mesh(new T.SphereGeometry(0.4, 12, 8), 0x4f9a3a, house, x+0.2, y+0.8, z); }
+// Phòng bác sĩ
+const rug = mesh(new T.CylinderGeometry(3, 3, 0.05, 32), 0xe6a6c6, house, 5, 0.24, 0.5); rug.castShadow = false;
+put(brick(4, 1.4, 1.4, 0x8a5a33), 5.5, 0, -3.4, house); solid(3.5, 7.5, -4.1, -2.7);
+mesh(BOX(0.9, 0.06, 0.6), 0x3a3f45, house, 5.0, 1.62, -3.4);
+const lap = mesh(BOX(0.9, 0.6, 0.06), 0x3a3f45, house, 5.0, 1.9, -3.7); lap.rotation.x = -0.25;
+mesh(new T.CylinderGeometry(0.18, 0.15, 0.4, 12), 0xffffff, house, 6.6, 1.8, -3.3);
+put(brick(1.2, 1.2, 1.2, 0x2b3036), 5.5, 0, -5.4, house);
+// ghế dài tâm lý (chaise)
+const couch = new T.Group(); put(couch, 5.5, 0, 3.6, house);
+put(brick(4.6, 0.9, 1.6, 0x2a8c8c, {studs:false}), 0, 0, 0, couch);
+put(brick(4.6, 0.7, 0.4, 0x237777, {studs:false}), 0, 0.9, -0.6, couch);
+const arm = put(brick(0.6, 1.5, 1.6, 0x237777, {studs:false}), -2.0, 0, 0, couch);
+mesh(new T.CylinderGeometry(0.28, 0.28, 1.4, 14), 0xf4d9a0, couch, -1.45, 1.15, 0).rotation.x = Math.PI/2;
+solid(3.2, 7.8, 2.8, 4.4);
+// bookshelf
+put(brick(0.6, 4, 3, 0x8a5a33, {studs:false}), 8.6, 0, -0.5, house); solid(8.3, 9, -2, 1);
+[0.8, 1.9, 3.0].forEach((y, r) => { for(let i=0;i<6;i++) mesh(BOX(0.4, 0.8, 0.35), BCOL[(i+r*2)%BCOL.length], house, 8.4, y+0.4, -1.6+i*0.45); });
+sign("BS. KHÁNH MINH · TÂM THẦN", 4.8, 0.7, "#fffdf6", "#2a8c8c", house, 0.55, 4.8, 3.6, Math.PI/2);
+put(brick(1,1,1,0x9b5a2e), 8.3, 0, 5.2, house); bushAt(8.3, 1.4, 5.2);
+
+/* ================= characters ================= */
+const player = makeFig({shirt:0xe5484d, legs:0x2a4f8f, hair:"short", hairColor:0x5a3a1f, face:{blush:true}});
+put(player.group, -5, 0, 25);
+player.group.rotation.y = Math.PI;
+
+const guard = makeFig({shirt:0x22355e, legs:0x1b1f2b, cap:0x22355e, badge:true, belt:true, face:{mustache:true, stern:true}});
+put(guard.group, -1.2, 0, 17.4); guard.group.rotation.y = 0; guard.home = 0;
+solid(-1.8, -0.6, 16.9, 17.9);
+
+const doctor = makeFig({shirt:0x8fd3e8, legs:0x2b3036, coat:0xffffff, hair:"long", hairColor:0x3b2314, face:{lashes:true, lips:true, blush:true}, shoes:0x1b1b1b});
+put(doctor.group, 5.5, 0, -4.9, house); doctor.home = 0;
+
+const muc = makeDog({color:0x2a2a2e, snout:0x3c3c42, ear:0x1b1b1e, vest:true});
+put(muc.group, -6, 1.1, -5.0, house); muc.home = 0;
+const bong = makeDog({color:0xf7f2ea, poodle:true, bow:true});
+put(bong.group, -8.1, 1.1, 2, house); bong.group.rotation.y = Math.PI/2; bong.home = Math.PI/2;
+
+/* ================= name tags ================= */
+function nameTag(text, sub, color, parent, y){
+  const tex = canvasTex(512, 160, (c, W, Hh) => {
+    c.font = 'bold 54px "Trebuchet MS",sans-serif';
+    const w = Math.min(W - 8, Math.max(c.measureText(text).width, 200) + 60);
+    const x0 = (W - w)/2;
+    c.fillStyle = "#1d2a33"; c.beginPath(); c.roundRect(x0, 6, w, 148, 28); c.fill();
+    c.fillStyle = color; c.beginPath(); c.roundRect(x0 + 6, 12, w - 12, 136, 23); c.fill();
+    c.fillStyle = "#1d2a33"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(text, W/2, 62, w - 30);
+    c.font = '600 34px "Trebuchet MS",sans-serif'; c.fillText(sub, W/2, 118, w - 30);
+  });
+  const sp = new T.Sprite(new T.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
+  sp.scale.set(3.2, 1.0, 1); sp.position.y = y; sp.renderOrder = 10;
+  parent.add(sp); return sp;
+}
+nameTag("Người bí ẩn", "Bảo vệ", "#9fc4ff", guard.group, 4.4);
+nameTag("BS. Khánh Minh", "Bác sĩ tâm thần", "#ffffff", doctor.group, 4.6);
+nameTag("Mực", "Dược sĩ · woof", "#7ee0a0", muc.group, 2.9);
+nameTag("Bông", "Thu ngân · woof", "#ffb3d9", bong.group, 2.9);
+
+/* ================= stray balloons ================= */
+const strays = [];
+[[16,10],[-19,-9],[19,-11],[-17,12],[9,-12],[-21,2]].forEach((p, i) => {
+  const g = new T.Group(); put(g, p[0], 2.6, p[1]);
+  const c = BCOL[(i*3) % BCOL.length];
+  const s = mesh(balloonGeo, c, g, 0, 0, 0, new T.MeshStandardMaterial({color:c, roughness:.22, emissive:c, emissiveIntensity:.15}));
+  s.scale.set(1, 1.15, 1);
+  mesh(new T.ConeGeometry(0.16, 0.25, 8), c, g, 0, -0.9, 0).rotation.x = Math.PI;
+  g.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0,-1,0), new T.Vector3(0.1,-2.4,0)]), stringMat));
+  g.userData = {phase: i*1.3, color: c, got:false};
+  strays.push(g);
+});
+
+/* ================= clouds ================= */
+const clouds = [];
+for(let i=0;i<9;i++){
+  const g = new T.Group(); put(g, Math.random()*160-80, 32+Math.random()*14, -60 + Math.random()*90);
+  for(let k=0;k<5;k++){
+    const m = new T.Mesh(new T.SphereGeometry(3+Math.random()*2.5, 12, 10), new T.MeshStandardMaterial({color:0xffffff, roughness:1}));
+    m.position.set(k*3.2 - 6, Math.random()*1.5, Math.random()*2); m.scale.y = 0.65; g.add(m);
+  }
+  clouds.push(g);
+}
+// scaffolding hậu cảnh (như ảnh)
+(function(){
+  const m = new T.MeshStandardMaterial({color:0xb9bfc6, roughness:.9});
+  [[-50,-60],[45,-55],[0,-75]].forEach(([x,z]) => {
+    const g = new T.Group(); put(g, x, 0, z);
+    for(let i=0;i<2;i++) for(let j=0;j<2;j++){ const p = new T.Mesh(BOX(0.6, 40, 0.6), m); p.position.set(i*8-4, 20, j*8-4); g.add(p); }
+    for(let y=4;y<40;y+=6){ [[0,-4,8,0],[0,4,8,0],[-4,0,0,8],[4,0,0,8]].forEach(q => {
+      const b = new T.Mesh(BOX(q[2]||0.4, 0.4, q[3]||0.4), m); b.position.set(q[0], y, q[1]); g.add(b);
+      const d = new T.Mesh(BOX(0.3, 8.5, 0.3), m); d.position.set(q[0], y+3, q[1]); d.rotation[q[2]?"z":"x"] = 0.78; g.add(d); }); }
+  });
+})();
+
+/* ================= audio ================= */
+let actx = null, soundOn = true;
+function ac(){ if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if(actx.state === "suspended") actx.resume(); return actx; }
+function bark(n, pitch){
+  if(!soundOn) return;
+  try{
+    const c = ac(); pitch = pitch || 1;
+    for(let i=0;i<(n||2);i++){
+      const t = c.currentTime + i*0.24;
+      const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(560*pitch, t); o.frequency.exponentialRampToValueAtTime(190*pitch, t+0.14);
+      f.type = "lowpass"; f.frequency.value = 1500;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.3, t+0.015); g.gain.exponentialRampToValueAtTime(0.0001, t+0.17);
+      o.connect(f); f.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.2);
+    }
+  }catch(e){}
+}
+function blip(freq, dur, type){
+  if(!soundOn) return;
+  try{
+    const c = ac(), t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = type || "sine"; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq*1.8, t+dur);
+    g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.02);
+  }catch(e){}
+}
+function chord(){ [523, 659, 784, 1046].forEach((f,i) => setTimeout(() => blip(f, 0.35, "triangle"), i*120)); }
+document.getElementById("snd").onclick = e => { soundOn = !soundOn; e.currentTarget.textContent = soundOn ? "🔊" : "🔇"; };
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+const talked = new Set();
+let collected = 0, lifted = false;
+const NAMES = {guard:"Người bí ẩn", doctor:"BS. Khánh Minh", muc:"Dược sĩ Mực 🐕", bong:"Thu ngân Bông 🐩"};
+function renderTasks(){
+  $("tasklist").innerHTML =
+    Object.keys(NAMES).map(k => `<li class="${talked.has(k)?"ok":""}">Chào ${NAMES[k]}</li>`).join("") +
+    `<li class="${collected>=6?"ok":""}">Nhặt bóng bay lạc: ${collected}/6</li>` +
+    (lifted ? `<li class="ok">Cho nhà bay lên</li>` : "");
+  $("lift").style.display = (talked.size === 4 && collected >= 6 && !flight.on) ? "block" : "none";
+}
+function toast(t){ const e = $("toast"); e.textContent = t; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, 2200); }
+
+let dlgOpen = null;
+function showDlg(who, text, trans, choices){
+  dlgOpen = who;
+  $("dlg").style.display = "block";
+  $("dnm").textContent = NAMES[who] || who;
+  $("dtx").textContent = text;
+  $("dtr").textContent = trans ? "(Dịch: " + trans + ")" : "";
+  const ch = $("dch"); ch.innerHTML = "";
+  (choices||[]).forEach((c, i) => {
+    const b = document.createElement("button"); b.textContent = (i+1) + ". " + c.t;
+    b.onclick = () => c.f(); ch.appendChild(b);
+  });
+  dlgChoices = choices || [];
+  $("dhint").textContent = dlgChoices.length ? "Chọn 1–" + dlgChoices.length : "E để đóng";
+  if(!talked.has(who) && NAMES[who]){ talked.add(who); renderTasks(); }
+}
+let dlgChoices = [];
+function closeDlg(){ dlgOpen = null; $("dlg").style.display = "none"; }
+
+/* ================= interactions ================= */
+const reactions = {muc:{t:0, jump:0, spin:0}, bong:{t:0, jump:0, spin:0}};
+const JOKES = [
+  ["Sao con chó không bao giờ bị stress?", "Vì nó chỉ lo đúng một việc: vẫy đuôi."],
+  ["Bệnh nhân hỏi: Bác sĩ ơi, em hay quên lắm. Từ khi nào?", "Em đáp: Từ khi nào là sao ạ?"],
+  ["Chị khám cho Mực một lần.", "Kết luận: lo âu chia ly, mỗi khi xương bị cất vào tủ."]
+];
+let jokeI = 0, guardI = 0;
+const GUARD_LINES = [
+  "Chào bạn! Hôm nay phòng khám mở cửa cho vào chơi thoải mái.",
+  "Anh gác cổng này 20 năm rồi. Chó trong đó lương cao hơn anh đó.",
+  "Thấy bóng bay lạc quanh sân thì nhặt giùm anh. Gom đủ 6 quả là cái nhà bay lên được.",
+  "Mực với Bông hiền lắm, chỉ hơi ồn thôi."
+];
+function talkGuard(){
+  guard.salute = 1.4;
+  showDlg("guard", GUARD_LINES[guardI++ % GUARD_LINES.length], null, [
+    {t:"Chào lại anh (giơ tay chào)", f:() => { player.salute = 1.4; showDlg("guard", "Đứng nghiêm! Chào đẹp lắm.", null, []); }},
+    {t:"Nói tiếp đi anh", f:talkGuard}
+  ]);
+}
+function talkDoctor(){
+  doctor.wave = 1.5;
+  showDlg("doctor", "Chào bạn, chị là bác sĩ Khánh Minh. Hôm nay bạn thấy thế nào?", null, [
+    {t:"Vui lắm chị ơi", f:() => showDlg("doctor", "Tuyệt quá! Ra sân nhặt bóng bay đi, đầy năng lượng vậy mà.", null, [])},
+    {t:"Hơi mệt", f:() => showDlg("doctor", "Vậy ra cái ghế dài màu xanh kia nằm thử đi. Lại gần ghế rồi nhấn E.", null, [])},
+    {t:"Kể chuyện vui đi chị", f:() => { const j = JOKES[jokeI++ % JOKES.length]; showDlg("doctor", j[0] + " " + j[1], null, [{t:"Kể nữa", f:() => talkDoctorJoke()}]); }}
+  ]);
+}
+function talkDoctorJoke(){ const j = JOKES[jokeI++ % JOKES.length]; doctor.wave = 1; showDlg("doctor", j[0] + " " + j[1], null, [{t:"Kể nữa", f:talkDoctorJoke}]); }
+function talkMuc(){
+  bark(2); reactions.muc.t = 2;
+  showDlg("muc", "Woof woof! Woof?", "Chào bạn! Chơi với Mực không?", [
+    {t:"Xoa đầu", f:() => { bark(3, 1.1); reactions.muc.t = 3; reactions.muc.jump = 0.6; showDlg("muc", "Woof woof woof!! 🐾", "Sướng quá, xoa nữa đi!", []); }},
+    {t:"Ném xương", f:() => { closeDlg(); throwBone(muc, "muc"); }},
+    {t:"Bắt tay", f:() => { reactions.muc.paw = 2; bark(1); showDlg("muc", "Woof.", "Đây, chân trước nè. Ngoan chưa?", []); }}
+  ]);
+}
+function talkBong(){
+  bark(2, 1.35); reactions.bong.t = 2;
+  showDlg("bong", "Woof woof. Woof?", "Bông đang trực quầy. Có gì vui không?", [
+    {t:"Xin dấu chân", f:() => { bark(1, 1.35); pawStamp(); showDlg("bong", "WOOF!", "Đóng dấu rồi đó, đem về khoe đi.", []); }},
+    {t:"Khen cái nơ đẹp", f:() => { reactions.bong.spin = 1; bark(3, 1.4); showDlg("bong", "Woof woof woof!", "Nơ xám này Bông tự chọn đó, xoay một vòng cho coi.", []); }},
+    {t:"Ném xương", f:() => { closeDlg(); throwBone(bong, "bong"); }}
+  ]);
+}
+function pawStamp(){
+  const d = document.createElement("div"); d.className = "paw"; d.textContent = "🐾";
+  d.style.left = (20 + Math.random()*60) + "vw"; d.style.top = (20 + Math.random()*40) + "vh";
+  document.body.appendChild(d); setTimeout(() => d.remove(), 1700);
+}
+let bone = null;
+function throwBone(dog, key){
+  if(bone) return;
+  const g = new T.Group();
+  mesh(new T.CylinderGeometry(0.1, 0.1, 0.8, 8), 0xfff8e8, g).rotation.z = Math.PI/2;
+  [-0.4, 0.4].forEach(x => [-0.1, 0.1].forEach(z => mesh(new T.SphereGeometry(0.13, 8, 6), 0xfff8e8, g, x, 0, z)));
+  const from = player.group.position.clone().add(new T.Vector3(0, 2.2, 0));
+  scene.add(g); g.position.copy(from);
+  bone = {g, from, dog, key, t:0, dur:0.9};
+  player.throwT = 0.5; blip(300, 0.2, "triangle");
+}
+
+let lying = false;
+function lieDown(){
+  lying = true; closeDlg();
+  const wp = new T.Vector3(); couch.getWorldPosition(wp);
+  player.group.position.set(wp.x + 0.4, 1.0, wp.z + 0.05);
+  player.group.rotation.set(0, Math.PI/2, 0);
+  player.group.rotateX(-Math.PI/2);
+  player.group.position.y = 1.0 + 0.3;
+  toast("Thư giãn… Đi lại để đứng dậy");
+  blip(200, 0.6);
+}
+function standUp(){
+  lying = false; player.group.rotation.set(0, 0, 0);
+  player.group.position.set(5.5, 0, 1.6);
+}
+
+const interact = [
+  {key:"guard", label:"nói chuyện với Người bí ẩn", obj:guard.group, r:3.4, f:talkGuard},
+  {key:"doctor", label:"nói chuyện với BS. Khánh Minh", obj:doctor.group, r:3.6, f:talkDoctor},
+  {key:"muc", label:"chơi với Dược sĩ Mực", obj:muc.group, r:3.2, f:talkMuc},
+  {key:"bong", label:"chơi với Thu ngân Bông", obj:bong.group, r:3.2, f:talkBong},
+  {key:"couch", label:"nằm ghế dài thư giãn", obj:couch, r:2.8, f:lieDown}
+];
+const _v = new T.Vector3();
+function nearest(){
+  let best = null, bd = 1e9;
+  const pp = player.group.position;
+  interact.forEach(it => {
+    it.obj.getWorldPosition(_v);
+    const d = Math.hypot(_v.x - pp.x, _v.z - pp.z);
+    if(d < it.r && d < bd){ bd = d; best = it; }
+  });
+  return best;
+}
+function doInteract(){
+  ac();
+  if(flight.on) return;
+  if(lying){ standUp(); return; }
+  const n = nearest();
+  if(dlgOpen && !dlgChoices.length && (!n || n.key === dlgOpen)){ closeDlg(); return; }
+  if(n) n.f();
+}
+
+/* ================= input ================= */
+const keys = {};
+addEventListener("keydown", e => {
+  const k = e.key.toLowerCase(); keys[k] = true;
+  if(k === "e" || k === " "){ e.preventDefault(); if(!e.repeat) doInteract(); }
+  if(k === "f" && $("lift").style.display === "block") startFlight();
+  if(dlgOpen && /^[1-4]$/.test(k) && dlgChoices[+k-1]) dlgChoices[+k-1].f();
+  if(k === "escape") closeDlg();
+  if(["arrowup","arrowdown","arrowleft","arrowright"].includes(k)) e.preventDefault();
+});
+addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+$("act").addEventListener("pointerdown", e => { e.preventDefault(); doInteract(); });
+$("lift").onclick = () => startFlight();
+
+let yaw = 0, pitch = 0.42, dist = 17, camYaw = 0, camPitch = 0.42, camDist = 17;
+const cv = renderer.domElement;
+let drag = null;
+cv.addEventListener("pointerdown", e => { drag = {id:e.pointerId, x:e.clientX, y:e.clientY}; cv.setPointerCapture(e.pointerId); ac(); });
+cv.addEventListener("pointermove", e => {
+  if(!drag || drag.id !== e.pointerId) return;
+  yaw -= (e.clientX - drag.x) * 0.006; pitch = Math.min(1.35, Math.max(0.12, pitch + (e.clientY - drag.y) * 0.004));
+  drag.x = e.clientX; drag.y = e.clientY;
+});
+cv.addEventListener("pointerup", () => drag = null);
+cv.addEventListener("pointercancel", () => drag = null);
+cv.addEventListener("wheel", e => { dist = Math.min(40, Math.max(7, dist + e.deltaY*0.02)); e.preventDefault(); }, {passive:false});
+
+const joy = {x:0, y:0, id:null};
+if(matchMedia("(pointer:coarse)").matches) document.body.classList.add("touch");
+(function(){
+  const el = $("joy"), knob = $("knob");
+  const upd = e => {
+    const r = el.getBoundingClientRect(); let dx = e.clientX - (r.left + r.width/2), dy = e.clientY - (r.top + r.height/2);
+    const L = Math.hypot(dx, dy), M = 45; if(L > M){ dx *= M/L; dy *= M/L; }
+    joy.x = dx/M; joy.y = dy/M; knob.style.transform = `translate(${dx}px,${dy}px)`;
+  };
+  el.addEventListener("pointerdown", e => { joy.id = e.pointerId; el.setPointerCapture(e.pointerId); upd(e); ac(); });
+  el.addEventListener("pointermove", e => { if(joy.id === e.pointerId) upd(e); });
+  const end = () => { joy.id = null; joy.x = joy.y = 0; knob.style.transform = ""; };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+})();
+
+/* ================= flight finale ================= */
+const flight = {on:false, t:0};
+function startFlight(){
+  if(flight.on) return;
+  closeDlg(); if(lying) standUp();
+  flight.on = true; flight.t = 0; lifted = true;
+  player.group.position.set(-5, 0, 8.3); player.group.rotation.set(0, 0, 0);
+  pitch = 0.25; dist = 30;
+  renderTasks(); chord(); toast("Bay thôi! 🎈");
+  setTimeout(() => bark(3), 600); setTimeout(() => bark(3, 1.35), 900);
+}
+
+/* ================= main loop ================= */
+const clock = new T.Clock();
+const camTarget = new T.Vector3(-5, 2, 25);
+let walkPhase = 0, insideBlend = 0;
+renderTasks();
+$("loading").remove();
+
+function collide(p){
+  const r = 0.55;
+  for(const b of COLL){
+    const cx = Math.max(b.x0, Math.min(p.x, b.x1)), cz = Math.max(b.z0, Math.min(p.z, b.z1));
+    const dx = p.x - cx, dz = p.z - cz, d2 = dx*dx + dz*dz;
+    if(d2 < r*r){
+      if(d2 > 1e-8){ const d = Math.sqrt(d2); p.x = cx + dx/d*r; p.z = cz + dz/d*r; }
+      else { // inside box: push to nearest edge
+        const opts = [[b.x0 - r - p.x, 0], [b.x1 + r - p.x, 0], [0, b.z0 - r - p.z], [0, b.z1 + r - p.z]];
+        opts.sort((a, c) => Math.abs(a[0]+a[1]) - Math.abs(c[0]+c[1])); p.x += opts[0][0]; p.z += opts[0][1];
+      }
+    }
+  }
+  p.x = Math.max(-40, Math.min(40, p.x)); p.z = Math.max(-13.4, Math.min(34, p.z));
+}
+function lookAtPlayer(npc, base, dt, range){
+  const g = npc.group, wp = new T.Vector3(); g.getWorldPosition(wp);
+  const pp = player.group.position;
+  const d = Math.hypot(pp.x - wp.x, pp.z - wp.z);
+  const target = d < range ? Math.atan2(pp.x - wp.x, pp.z - wp.z) : base;
+  let diff = target - g.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+  g.rotation.y += diff * Math.min(1, dt*4);
+}
+
+function frame(){
+  const dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime;
+  const pg = player.group, pos = pg.position;
+
+  /* movement */
+  let mx = 0, mz = 0;
+  if(keys.w || keys.arrowup) mz += 1; if(keys.s || keys.arrowdown) mz -= 1;
+  if(keys.a || keys.arrowleft) mx -= 1; if(keys.d || keys.arrowright) mx += 1;
+  mx += joy.x; mz -= joy.y;
+  const mag = Math.min(1, Math.hypot(mx, mz));
+  let moving = false;
+  if(!flight.on && mag > 0.1){
+    if(lying) standUp();
+    const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    let dx = fx*mz + rx*mx, dz = fz*mz + rz*mx; const L = Math.hypot(dx, dz); dx /= L; dz /= L;
+    const sp = (keys.shift ? 11 : 6.5) * mag;
+    pos.x += dx*sp*dt; pos.z += dz*sp*dt;
+    collide(pos);
+    let target = Math.atan2(dx, dz), diff = target - pg.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    pg.rotation.y += diff * Math.min(1, dt*12);
+    walkPhase += dt * sp * 1.6; moving = true;
+    if(dlgOpen){ const it = interact.find(i => i.key === dlgOpen); if(it){ it.obj.getWorldPosition(_v); if(Math.hypot(_v.x-pos.x, _v.z-pos.z) > it.r + 2) closeDlg(); } }
+  }
+  if(!lying){
+    const sw = moving ? Math.sin(walkPhase)*0.7 : 0;
+    player.legL.rotation.x += (sw - player.legL.rotation.x)*0.3; player.legR.rotation.x += (-sw - player.legR.rotation.x)*0.3;
+    let aL = -sw, aR = sw;
+    if(player.salute > 0){ player.salute -= dt; aR = -2.6; }
+    if(player.throwT > 0){ player.throwT -= dt; aR = -2.8 + (0.5 - player.throwT)*5; }
+    if(flight.on){ aR = -2.6 + Math.sin(t*8)*0.4; }
+    player.armL.rotation.x += (aL - player.armL.rotation.x)*0.3; player.armR.rotation.x += (aR - player.armR.rotation.x)*0.3;
+    if(!flight.on) pos.y = 0;
+  }
+
+  /* inside visuals */
+  const inside = !flight.on && pos.x > -10 && pos.x < 10 && pos.z > -7 && pos.z < 6.9;
+  insideBlend += ((inside ? 1 : 0) - insideBlend) * Math.min(1, dt*6);
+  roofGroup.visible = insideBlend < 0.5;
+  ["front"].forEach(() => Object.keys(MATS).forEach(k => { if(k.endsWith("front")) MATS[k].opacity = 1 - insideBlend*0.82; }));
+  cluster.visible = true;
+
+  /* NPC idle */
+  lookAtPlayer(guard, guard.home, dt, 7);
+  lookAtPlayer(doctor, doctor.home, dt, 8);
+  guard.armR.rotation.x = guard.salute > 0 ? (guard.salute -= dt, -2.6) : Math.sin(t*1.3)*0.05;
+  guard.armL.rotation.x = 0;
+  doctor.armR.rotation.x = doctor.wave > 0 ? (doctor.wave -= dt, -2.4 + Math.sin(t*14)*0.35) : Math.sin(t*1.1)*0.06;
+  doctor.armR.rotation.z = doctor.wave > 0 ? 0.4 : 0;
+  doctor.head.rotation.z = Math.sin(t*0.9)*0.05;
+  [[muc, "muc", 1], [bong, "bong", 1.3]].forEach(([dog, k]) => {
+    const R = reactions[k];
+    if(!R.catch) lookAtPlayer(dog, dog.home, dt, 6);
+    const ex = R.t > 0 ? (R.t -= dt, 1) : 0;
+    dog.tail.rotation.y = Math.sin(t*(ex ? 22 : 7)) * (ex ? 0.8 : 0.35);
+    dog.tongue.visible = ex || Math.sin(t*0.7) > 0.3;
+    let jy = 0;
+    if(R.jump > 0){ R.jump -= dt; jy = Math.sin((0.6 - R.jump)/0.6*Math.PI)*0.9; }
+    dog.group.position.y = 1.1 + jy + Math.abs(Math.sin(t*(ex?10:2)))*(ex?0.12:0.03);
+    if(R.spin > 0){ R.spin -= dt; dog.group.rotation.y += dt*Math.PI*2; }
+    dog.legs[0].rotation.x = R.paw > 0 ? (R.paw -= dt, -1.4) : 0;
+    dog.head.rotation.x = Math.sin(t*1.6)*0.06;
+  });
+
+  /* bone */
+  if(bone){
+    bone.t += dt;
+    const k = Math.min(1, bone.t/bone.dur);
+    const to = new T.Vector3(); bone.dog.head.getWorldPosition(to); to.y += 0.1;
+    if(k < 1){
+      bone.g.position.lerpVectors(bone.from, to, k); bone.g.position.y += Math.sin(k*Math.PI)*3;
+      bone.g.rotation.z += dt*14;
+      if(k > 0.55 && !bone.jumped){ bone.jumped = true; reactions[bone.key].jump = 0.6; }
+    } else {
+      if(!bone.caught){ bone.caught = true; bark(2, bone.key === "bong" ? 1.35 : 1); reactions[bone.key].t = 3;
+        showDlg(bone.key, "Woof! Mmmf.", "Bắt được rồi! Ngon ghê.", []); }
+      bone.g.position.copy(to).add(new T.Vector3(0, -0.15, 0)); bone.g.position.add(new T.Vector3(Math.sin(bone.dog.group.rotation.y)*0.55, 0, Math.cos(bone.dog.group.rotation.y)*0.55));
+      bone.g.rotation.set(0, bone.dog.group.rotation.y + Math.PI/2, 0);
+      if(bone.t > bone.dur + 2.5){ scene.remove(bone.g); bone = null; }
+    }
+  }
+
+  /* balloons */
+  clusterBalloons.forEach(b => {
+    const u = b.userData; b.position.x = u.base.x + Math.sin(t*0.8 + u.phase)*0.12; b.position.y = u.base.y + Math.sin(t*1.1 + u.phase)*0.15;
+    if(u.fly){ u.fly -= dt; }
+  });
+  rebuildStrings();
+  strays.forEach(b => {
+    const u = b.userData;
+    if(u.got){
+      if(u.anim !== undefined){
+        u.anim += dt; const k = Math.min(1, u.anim/1.6);
+        const tgt = new T.Vector3(); cluster.getWorldPosition(tgt); tgt.add(u.slot);
+        b.position.lerpVectors(u.start, tgt, k*k*(3-2*k)); b.position.y += Math.sin(k*Math.PI)*4;
+        if(k >= 1){ scene.remove(b); addClusterBalloon(u.color, u.slot); delete u.anim; }
+      }
+      return;
+    }
+    b.position.y = 2.6 + Math.sin(t*1.5 + u.phase)*0.35; b.rotation.y = Math.sin(t*0.5 + u.phase)*0.4;
+    if(Math.hypot(b.position.x - pos.x, b.position.z - pos.z) < 1.7 && !flight.on){
+      u.got = true; u.anim = 0; u.start = b.position.clone();
+      const th = Math.random()*6.28; u.slot = new T.Vector3(Math.cos(th)*2.4, 2.2 + Math.random(), Math.sin(th)*2.4);
+      collected++; renderTasks(); blip(660, 0.18, "triangle"); setTimeout(() => blip(990, 0.2, "triangle"), 110);
+      toast(collected >= 6 ? "Đủ 6 quả! " + (talked.size === 4 ? "Nhấn F để thả nhà bay." : "Chào đủ 4 người là cho nhà bay được.") : `Bóng bay ${collected}/6`);
+    }
+  });
+
+  /* clouds */
+  clouds.forEach((c, i) => { c.position.x += dt*(0.6 + i*0.07); if(c.position.x > 100) c.position.x = -100; });
+
+  /* flight */
+  if(flight.on){
+    flight.t += dt;
+    const f = flight.t; let y;
+    if(f < 7) y = 26 * (1 - Math.cos(Math.min(1, f/7)*Math.PI))/2;
+    else if(f < 13) y = 26 + Math.sin((f-7)*1.2)*0.8;
+    else if(f < 20) y = 26 * (1 + Math.cos(Math.min(1, (f-13)/7)*Math.PI))/2;
+    else { y = 0; flight.on = false; pitch = 0.42; dist = 17; renderTasks(); toast("Hạ cánh an toàn. Woof woof!"); bark(2); }
+    house.position.y = y; house.rotation.z = Math.sin(f*0.9)*0.03*(y/26); house.rotation.x = Math.sin(f*0.7)*0.02*(y/26);
+    pos.y = y + 0.18;
+    if(f < 13) yaw += dt*0.25;
+  } else { house.position.y = 0; house.rotation.set(0,0,0); }
+
+  /* prompt */
+  const n = (!flight.on && !lying) ? nearest() : null;
+  const pr = $("prompt");
+  if(lying){ pr.style.display = "block"; pr.innerHTML = "<kbd>E</kbd>đứng dậy"; }
+  else if(n && !(dlgOpen && dlgOpen === n.key)){ pr.style.display = "block"; pr.innerHTML = `<kbd>E</kbd>${n.label}`; }
+  else pr.style.display = "none";
+
+  /* camera */
+  const wantPitch = Math.max(pitch, 0.42 + insideBlend*0.55);
+  const wantDist = dist * (1 - insideBlend*0.1);
+  camYaw += (yaw - camYaw) * Math.min(1, dt*8);
+  camPitch += (wantPitch - camPitch) * Math.min(1, dt*5);
+  camDist += (wantDist - camDist) * Math.min(1, dt*5);
+  camTarget.lerp(new T.Vector3(pos.x, pos.y + (flight.on ? 8 : 2), pos.z), Math.min(1, dt*8));
+  camera.position.set(
+    camTarget.x + Math.sin(camYaw)*Math.cos(camPitch)*camDist,
+    camTarget.y + Math.sin(camPitch)*camDist,
+    camTarget.z + Math.cos(camYaw)*Math.cos(camPitch)*camDist);
+  camera.lookAt(camTarget);
+  sun.position.set(camTarget.x + 28, 48, camTarget.z + 30); sun.target.position.copy(camTarget); sun.target.updateMatrixWorld();
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+addEventListener("resize", () => { camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+window.__game = {player, keys, talked, get collected(){return collected}, strays, startFlight, doInteract, house, flight, get dlg(){return dlgOpen}};
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Phòng khám BS. Khánh Minh · 3D</title>
+<title>Bác sĩ Khánh Minh · Phòng khám 3D</title>
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(#6fa8e6 0%,#bcd8f2 55%,#e9e3d6 100%);
     font:15px/1.45 "Trebuchet MS","Segoe UI",Roboto,sans-serif;color:#1d2a33;user-select:none;-webkit-user-select:none}
@@ -54,24 +54,66 @@
   body.touch #help{display:none}
   body.touch #dlg{bottom:160px}
   #loading{position:fixed;inset:0;display:grid;place-items:center;font-weight:800;font-size:22px}
+  #tasks li{padding:4px 0;color:#1d2a33;border-bottom:1px dashed #d8d0bf}
+  #tasks li small{color:#5b6770}
+  #tasks li.bad{color:#b5462f}
+  #tasks li.dog{border:0;color:#5b6770;font-size:13px}
+  #tasks li::before{content:none!important}
+  .bar{display:inline-block;width:70px;height:8px;border:2px solid #1d2a33;border-radius:5px;vertical-align:middle;overflow:hidden;background:#fff}
+  .bar i{display:block;height:100%}
+  #mg{position:fixed;inset:0;background:#1d2a3366;display:none;place-items:center;z-index:5}
+  #mg .card{background:#fffdf6;border:3px solid #1d2a33;border-radius:16px;box-shadow:0 6px 0 #1d2a33;padding:20px 24px;
+    width:min(560px,calc(100% - 28px));max-height:calc(100% - 28px);overflow:auto;text-align:center}
+  #mg h2{margin:0 0 6px;font-size:22px}
+  #mg .sub{color:#5b6770;margin:0 0 12px}
+  #mg .dogh{font-size:13px;background:#7ee0a0;border:2px solid #1d2a33;border-radius:999px;padding:1px 8px;vertical-align:middle;white-space:nowrap}
+  #mg .big{font-size:26px;font-weight:800;margin:8px 0}
+  #mg canvas{display:block;margin:0 auto}
+  #mg .meter{position:relative;height:16px;border:3px solid #1d2a33;border-radius:9px;background:#fff;overflow:hidden;margin:8px 0 14px}
+  #mg .meter i{display:block;height:100%;background:#2fae5a;width:0}
+  #mg .meter .mark{position:absolute;top:0;bottom:0;width:3px;background:#e5484d}
+  #mg .hold{font:inherit;font-weight:800;font-size:18px;border:3px solid #1d2a33;border-radius:12px;background:#ffd23a;padding:12px 22px;
+    cursor:pointer;box-shadow:0 4px 0 #1d2a33;touch-action:none;color:#1d2a33}
+  #mg .hold.on{background:#5ab8f0;transform:translateY(3px);box-shadow:0 1px 0 #1d2a33}
+  #mg .say{font-size:20px;font-style:italic;margin:6px 0 14px}
+  #mg .opts{display:grid;gap:8px}
+  #mg .opts button{font:inherit;text-align:left;border:2px solid #1d2a33;border-radius:10px;background:#fff;padding:10px 14px;cursor:pointer;min-height:44px;color:#1d2a33}
+  #mg .opts button:hover:not(:disabled){background:#fff3c4}
+  #mg .opts button.good{background:#c9f2d4}
+  #mg .opts button.bad{background:#f8d0c8}
+  #mg .fb{min-height:24px;margin-top:10px;font-weight:700}
+  #mg .timer{font-weight:800;font-size:18px;margin-bottom:10px}
+  #mg .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:360px;margin:0 auto}
+  #mg .cardb{aspect-ratio:1;border:3px solid #1d2a33;border-radius:12px;background:#d05098;cursor:pointer;font-size:36px;padding:0}
+  #mg .cardb span{visibility:hidden}
+  #mg .cardb.up{background:#fff}
+  #mg .cardb.up span{visibility:visible}
+  #mg .cardb.ok{background:#c9f2d4}
+  #mg .how{text-align:left;margin:0 0 12px;padding-left:22px}
+  #mg .how li{margin:6px 0}
+  #mg .sum{text-align:left;list-style:none;padding:0;margin:0 0 6px}
+  #mg .sum li{padding:6px 0;border-bottom:1px dashed #d8d0bf}
+  #mg .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  .btnp{font:inherit;font-weight:800;border:3px solid #1d2a33;border-radius:12px;background:#ffd23a;padding:10px 18px;cursor:pointer;box-shadow:0 4px 0 #1d2a33;color:#1d2a33}
+  .btnp.alt{background:#fff}
 </style>
 </head>
 <body>
+<div id="mg"></div>
 <div id="loading">Đang xếp gạch…</div>
 <div class="hud">
   <div id="tasks">
-    <h1>Việc cần làm</h1>
+    <h1>Bệnh nhân hôm nay</h1>
     <ul id="tasklist"></ul>
   </div>
   <div id="topright">
     <button class="pill" id="snd">🔊</button>
   </div>
-  <button class="pill" id="lift">🎈 Thả nhà bay lên! (F)</button>
   <div id="prompt"></div>
   <div id="toast"></div>
   <div id="dlg"><span class="nm" id="dnm"></span><div class="tx" id="dtx"></div><div class="tr" id="dtr"></div>
     <div class="ch" id="dch"></div><div class="hint" id="dhint"></div></div>
-  <div id="help"><b>Điều khiển</b><br>WASD / mũi tên: đi · Shift: chạy<br>Kéo chuột: xoay camera · Lăn chuột: zoom<br>E hoặc Space: nói chuyện / tương tác</div>
+  <div id="help"><b>BS. Khánh Minh</b><br>WASD: đi · Shift: chạy · E: tương tác<br>Kéo chuột: xoay · Lăn: zoom<br><a href="khach.html">Chơi vai khách</a></div>
   <div id="joy"><div id="knob"></div></div>
   <button class="pill" id="act">E</button>
 </div>
@@ -548,25 +590,20 @@ sign("BS. KHÁNH MINH · TÂM THẦN", 4.8, 0.7, "#fffdf6", "#2a8c8c", house, 0.
 put(brick(1,1,1,0x9b5a2e), 8.3, 0, 5.2, house); bushAt(8.3, 1.4, 5.2);
 
 /* ================= characters ================= */
-const player = makeFig({shirt:0xe5484d, legs:0x2a4f8f, hair:"short", hairColor:0x5a3a1f, face:{blush:true}});
-put(player.group, -5, 0, 25);
-player.group.rotation.y = Math.PI;
+const player = makeFig({shirt:0x8fd3e8, legs:0x2b3036, coat:0xffffff, hair:"long", hairColor:0x3b2314, face:{lashes:true, lips:true, blush:true}, shoes:0x1b1b1b});
+put(player.group, 5.5, 0, -1.2);
 
 const guard = makeFig({shirt:0x22355e, legs:0x1b1f2b, cap:0x22355e, badge:true, belt:true, face:{mustache:true, stern:true}});
-put(guard.group, -1.2, 0, 17.4); guard.group.rotation.y = 0; guard.home = 0;
-solid(-1.8, -0.6, 16.9, 17.9);
-
-const doctor = makeFig({shirt:0x8fd3e8, legs:0x2b3036, coat:0xffffff, hair:"long", hairColor:0x3b2314, face:{lashes:true, lips:true, blush:true}, shoes:0x1b1b1b});
-put(doctor.group, 5.5, 0, -4.9, house); doctor.home = 0;
+put(guard.group, -1.2, 0, 17.4); guard.home = 0;
 
 const muc = makeDog({color:0x2a2a2e, snout:0x3c3c42, ear:0x1b1b1e, vest:true});
-put(muc.group, -6, 1.1, -5.0, house); muc.home = 0;
+put(muc.group, -6, 1.1, -5.0, house); muc.home = 0; muc.baseY = 1.1;
 const bong = makeDog({color:0xf7f2ea, poodle:true, bow:true});
-put(bong.group, -8.1, 1.1, 2, house); bong.group.rotation.y = Math.PI/2; bong.home = Math.PI/2;
+put(bong.group, -8.1, 1.1, 2, house); bong.group.rotation.y = Math.PI/2; bong.home = Math.PI/2; bong.baseY = 1.1;
 
-/* ================= name tags ================= */
-function nameTag(text, sub, color, parent, y){
-  const tex = canvasTex(512, 160, (c, W, Hh) => {
+/* ================= sprites ================= */
+function tagSprite(text, sub, color){
+  const tex = canvasTex(512, 160, (c, W) => {
     c.font = 'bold 54px "Trebuchet MS",sans-serif';
     const w = Math.min(W - 8, Math.max(c.measureText(text).width, 200) + 60);
     const x0 = (W - w)/2;
@@ -577,28 +614,41 @@ function nameTag(text, sub, color, parent, y){
     c.font = '600 34px "Trebuchet MS",sans-serif'; c.fillText(sub, W/2, 118, w - 30);
   });
   const sp = new T.Sprite(new T.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
-  sp.scale.set(3.2, 1.0, 1); sp.position.y = y; sp.renderOrder = 10;
-  parent.add(sp); return sp;
+  sp.scale.set(3.2, 1.0, 1); sp.renderOrder = 10;
+  return sp;
 }
+function nameTag(text, sub, color, parent, y){ const s = tagSprite(text, sub, color); s.position.y = y; parent.add(s); return s; }
 nameTag("Người bí ẩn", "Bảo vệ", "#9fc4ff", guard.group, 4.4);
-nameTag("BS. Khánh Minh", "Bác sĩ tâm thần", "#ffffff", doctor.group, 4.6);
-nameTag("Mực", "Dược sĩ · woof", "#7ee0a0", muc.group, 2.9);
-nameTag("Bông", "Thu ngân · woof", "#ffb3d9", bong.group, 2.9);
+nameTag("BS. Khánh Minh", "Bạn đang chơi", "#ffd23a", player.group, 4.6);
+nameTag("Mực", "Trợ lý · woof", "#7ee0a0", muc.group, 2.9);
+nameTag("Bông", "Sổ hẹn · woof", "#ffb3d9", bong.group, 2.9);
 
-/* ================= stray balloons ================= */
-const strays = [];
-[[16,10],[-19,-9],[19,-11],[-17,12],[9,-12],[-21,2]].forEach((p, i) => {
-  const g = new T.Group(); put(g, p[0], 2.6, p[1]);
-  const c = BCOL[(i*3) % BCOL.length];
-  const s = mesh(balloonGeo, c, g, 0, 0, 0, new T.MeshStandardMaterial({color:c, roughness:.22, emissive:c, emissiveIntensity:.15}));
-  s.scale.set(1, 1.15, 1);
-  mesh(new T.ConeGeometry(0.16, 0.25, 8), c, g, 0, -0.9, 0).rotation.x = Math.PI;
-  g.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0,-1,0), new T.Vector3(0.1,-2.4,0)]), stringMat));
-  g.userData = {phase: i*1.3, color: c, got:false};
-  strays.push(g);
-});
+function iconTex(kind){
+  return canvasTex(128, 128, (c) => {
+    c.lineWidth = 6; c.strokeStyle = "#1d2a33";
+    if(kind === "sad"){
+      c.fillStyle = "#8b96a0";
+      c.beginPath(); c.arc(44, 54, 22, 0, 6.3); c.arc(70, 44, 26, 0, 6.3); c.arc(92, 58, 20, 0, 6.3); c.fill();
+      c.fillRect(30, 58, 76, 20);
+      c.strokeStyle = "#3d8fe0"; c.lineCap = "round";
+      [[44,92],[66,100],[88,92]].forEach(([x,y]) => { c.beginPath(); c.moveTo(x, y); c.lineTo(x-5, y+16); c.stroke(); });
+    } else if(kind === "anx"){
+      c.fillStyle = "#5ab8f0";
+      c.beginPath(); c.moveTo(64, 12); c.bezierCurveTo(64, 12, 104, 66, 104, 82); c.arc(64, 82, 40, 0, Math.PI); c.bezierCurveTo(24, 66, 64, 12, 64, 12); c.fill(); c.stroke();
+      c.fillStyle = "#ffffffaa"; c.beginPath(); c.ellipse(50, 80, 8, 14, 0.3, 0, 6.3); c.fill();
+    } else if(kind === "mess"){
+      c.fillStyle = "#ffd23a"; c.beginPath(); c.arc(64, 64, 52, 0, 6.3); c.fill(); c.stroke();
+      c.fillStyle = "#1d2a33"; c.font = "bold 84px sans-serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("?", 64, 70);
+    } else {
+      c.fillStyle = "#ffd23a"; c.beginPath(); c.arc(64, 64, 52, 0, 6.3); c.fill(); c.stroke();
+      c.fillStyle = "#1d2a33"; c.beginPath(); c.arc(46, 52, 7, 0, 6.3); c.arc(82, 52, 7, 0, 6.3); c.fill();
+      c.beginPath(); c.arc(64, 70, 26, 0.15*Math.PI, 0.85*Math.PI); c.stroke();
+    }
+  });
+}
+const ICONS = {sad:iconTex("sad"), anx:iconTex("anx"), mess:iconTex("mess"), happy:iconTex("happy")};
 
-/* ================= clouds ================= */
+/* ================= clouds / backdrop ================= */
 const clouds = [];
 for(let i=0;i<9;i++){
   const g = new T.Group(); put(g, Math.random()*160-80, 32+Math.random()*14, -60 + Math.random()*90);
@@ -608,7 +658,6 @@ for(let i=0;i<9;i++){
   }
   clouds.push(g);
 }
-// scaffolding hậu cảnh (như ảnh)
 (function(){
   const m = new T.MeshStandardMaterial({color:0xb9bfc6, roughness:.9});
   [[-50,-60],[45,-55],[0,-75]].forEach(([x,z]) => {
@@ -649,21 +698,13 @@ function blip(freq, dur, type){
 function chord(){ [523, 659, 784, 1046].forEach((f,i) => setTimeout(() => blip(f, 0.35, "triangle"), i*120)); }
 document.getElementById("snd").onclick = e => { soundOn = !soundOn; e.currentTarget.textContent = soundOn ? "🔊" : "🔇"; };
 
-/* ================= UI ================= */
+/* ================= helpers ================= */
 const $ = id => document.getElementById(id);
-const talked = new Set();
-let collected = 0, lifted = false;
-const NAMES = {guard:"Người bí ẩn", doctor:"BS. Khánh Minh", muc:"Dược sĩ Mực 🐕", bong:"Thu ngân Bông 🐩"};
-function renderTasks(){
-  $("tasklist").innerHTML =
-    Object.keys(NAMES).map(k => `<li class="${talked.has(k)?"ok":""}">Chào ${NAMES[k]}</li>`).join("") +
-    `<li class="${collected>=6?"ok":""}">Nhặt bóng bay lạc: ${collected}/6</li>` +
-    (lifted ? `<li class="ok">Cho nhà bay lên</li>` : "");
-  $("lift").style.display = (talked.size === 4 && collected >= 6 && !flight.on) ? "block" : "none";
-}
-function toast(t){ const e = $("toast"); e.textContent = t; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, 2200); }
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function toast(t, ms){ const e = $("toast"); e.textContent = t; e.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => e.style.opacity = 0, ms || 2600); }
+const NAMES = {guard:"Người bí ẩn", muc:"Mực 🐕", bong:"Bông 🐩"};
 
-let dlgOpen = null;
+let dlgOpen = null, dlgChoices = [];
 function showDlg(who, text, trans, choices){
   dlgOpen = who;
   $("dlg").style.display = "block";
@@ -677,62 +718,148 @@ function showDlg(who, text, trans, choices){
   });
   dlgChoices = choices || [];
   $("dhint").textContent = dlgChoices.length ? "Chọn 1–" + dlgChoices.length : "E để đóng";
-  if(!talked.has(who) && NAMES[who]){ talked.add(who); renderTasks(); }
 }
-let dlgChoices = [];
 function closeDlg(){ dlgOpen = null; $("dlg").style.display = "none"; }
 
-/* ================= interactions ================= */
+const puffs = [];
+function puff(v){
+  for(let i=0;i<9;i++){
+    const m = new T.Mesh(new T.SphereGeometry(0.45, 8, 6), new T.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:.9}));
+    m.position.set(v.x + (Math.random()-.5)*1.4, v.y + 0.4 + Math.random()*2.8, v.z + (Math.random()-.5)*1.4);
+    scene.add(m); puffs.push({m, a:0});
+  }
+  blip(420, .25);
+}
+
+/* ================= game state ================= */
+let started = false, dayOver = false, dayT = 0, mgOpen = false, mg = null;
+const MOODS = {
+  sad: {word:"Buồn",    game:"talk",   gameName:"Nghe chuyện", line:"Dạo này em thấy buồn mà không biết vì sao…"},
+  anx: {word:"Lo lắng", game:"breath", gameName:"Thở cùng",    line:"Tim em đập nhanh quá, cứ lo đủ thứ chuyện…"},
+  mess:{word:"Rối trí", game:"memory", gameName:"Lật thẻ",     line:"Đầu óc em rối tung, chẳng nhớ nổi gì…"}
+};
+const PDEF = shuffle([
+  {name:"Cô Lan",  mood:"sad",  shirt:0x7b5ea7, legs:0x3b3f5c, hair:"long",  hairColor:0x6b4a2b, face:{lashes:true, lips:true}},
+  {name:"Anh Bảo", mood:"anx",  shirt:0x2fae5a, legs:0x5b4632, hair:"short", hairColor:0x1b1b1b, face:{}},
+  {name:"Bé Na",   mood:"mess", shirt:0xff8a2a, legs:0x2a4f8f, hair:"short", hairColor:0xd9a63a, face:{blush:true}}
+]);
+const ARRIVE = [3, 26, 50];
+const WAIT = [[-3.6, 0.6], [-2.5, 0.6], [-1.4, 0.6]];
+const patients = PDEF.map((d, i) => {
+  const fig = makeFig({shirt:d.shirt, legs:d.legs, hair:d.hair, hairColor:d.hairColor, face:d.face});
+  fig.group.visible = false; fig.group.position.set(-34, 0, 26); scene.add(fig.group);
+  const holder = new T.Group(); holder.visible = false; scene.add(holder);
+  const tag = tagSprite(d.name, MOODS[d.mood].word, "#ffe9a8"); tag.position.y = 4.4; holder.add(tag);
+  const icon = new T.Sprite(new T.SpriteMaterial({map:ICONS[d.mood], depthTest:false, transparent:true}));
+  icon.scale.set(1.2, 1.2, 1); icon.position.y = 5.7; icon.renderOrder = 11; holder.add(icon);
+  return Object.assign({i, fig, holder, icon, state:"off", patience:100, path:[], onArrive:null, tries:0, stars:0,
+    extended:false, warned:false, lying:false, walk:0, result:null}, d);
+});
+const mucS = {follow:false, hungry:false, fedMsg:false};
+
+function goPath(p, pts, cb){ p.path = pts.map(([x, z]) => new T.Vector3(x, 0, z)); p.onArrive = cb || null; }
+const couchBusy = () => patients.some(q => q.state === "toOffice" || q.state === "session");
+const OUT_FROM_LOBBY = [[-5, 4], [-5, 8], [-5, 17], [-5, 26], [-34, 26]];
+
+function spawn(p){
+  p.state = "arriving"; p.fig.group.visible = true; p.holder.visible = true;
+  goPath(p, [[-5, 26]], () => {
+    announce(p);
+    goPath(p, [[-5, 17], [-5, 8], [-5, 4], WAIT[p.i]], () => { p.state = "waiting"; });
+  });
+}
+function announce(p){
+  const gp = guard.group.position;
+  if(Math.hypot(gp.x + 1.2, gp.z - 17.4) > 0.5){ puff(gp.clone()); guard.group.position.set(-1.2, 0, 17.4); puff(guard.group.position.clone()); }
+  guard.home = 0; guard.salute = 1.6;
+  toast(`Người bí ẩn: "${p.name} tới rồi. Đừng hỏi sao tôi biết."`, 3200);
+  blip(880, .15, "triangle"); setTimeout(() => blip(660, .2, "triangle"), 160);
+}
+function invite(p){
+  if(couchBusy()){ showDlg(p.name, "Dạ, phòng đang có người, em đợi thêm chút ạ.", null, []); return; }
+  closeDlg(); p.state = "toOffice";
+  goPath(p, [[-1.5, 0.2], [1.5, 0], [6.5, 1.9], [7.6, 2.4]], () => lieOn(p));
+  toast(`${p.name} đang vào phòng, sẽ nằm lên ghế dài.`);
+}
+function lieOn(p){
+  p.state = "session"; p.lying = true;
+  const g = p.fig.group; g.rotation.set(0, Math.PI/2, 0); g.rotateX(-Math.PI/2); g.position.set(5.9, 1.3, 3.65);
+  [p.fig.legL, p.fig.legR, p.fig.armL, p.fig.armR].forEach(x => x.rotation.x = 0);
+}
+function standUp(p){ p.lying = false; p.fig.group.rotation.set(0, 0, 0); p.fig.group.position.set(6.5, 0, 1.9); }
+function leave(p, fromOffice){
+  p.state = "leaving";
+  goPath(p, (fromOffice ? [[1.5, 0], [-1.5, 0.2]] : []).concat(OUT_FROM_LOBBY), () => {
+    p.state = "gone"; p.fig.group.visible = false; p.holder.visible = false; checkEnd();
+  });
+}
+
+const mucHelping = () => mucS.follow && Math.hypot(muc.group.position.x - 6, muc.group.position.z - 2.5) < 6.5;
+function mucHome(){
+  const w = new T.Vector3(); muc.group.getWorldPosition(w); puff(w);
+  mucS.follow = false; muc.baseY = 1.1; muc.group.position.set(-6, 1.1, -5); muc.group.rotation.y = 0;
+}
+
+/* ================= talk ================= */
 const reactions = {muc:{t:0, jump:0, spin:0}, bong:{t:0, jump:0, spin:0}};
-const JOKES = [
-  ["Sao con chó không bao giờ bị stress?", "Vì nó chỉ lo đúng một việc: vẫy đuôi."],
-  ["Bệnh nhân hỏi: Bác sĩ ơi, em hay quên lắm. Từ khi nào?", "Em đáp: Từ khi nào là sao ạ?"],
-  ["Chị khám cho Mực một lần.", "Kết luận: lo âu chia ly, mỗi khi xương bị cất vào tủ."]
-];
-let jokeI = 0, guardI = 0;
 const GUARD_LINES = [
-  "Chào bạn! Hôm nay phòng khám mở cửa cho vào chơi thoải mái.",
-  "Anh gác cổng này 20 năm rồi. Chó trong đó lương cao hơn anh đó.",
-  "Thấy bóng bay lạc quanh sân thì nhặt giùm anh. Gom đủ 6 quả là cái nhà bay lên được.",
-  "Mực với Bông hiền lắm, chỉ hơi ồn thôi."
+  "…",
+  "Tôi là ai không quan trọng. Quan trọng là bệnh nhân của bác sĩ.",
+  "Bác sĩ đã bao giờ thấy tôi bước đi chưa? Chưa, đúng không.",
+  "Khách tới là tôi biết trước. Đừng hỏi vì sao.",
+  "Con chó đen kia biết bí mật của tôi. May là nó chỉ nói được woof."
 ];
+let guardI = 0;
 function talkGuard(){
   guard.salute = 1.4;
   showDlg("guard", GUARD_LINES[guardI++ % GUARD_LINES.length], null, [
-    {t:"Chào lại anh (giơ tay chào)", f:() => { player.salute = 1.4; showDlg("guard", "Đứng nghiêm! Chào đẹp lắm.", null, []); }},
-    {t:"Nói tiếp đi anh", f:talkGuard}
+    {t:"Anh là ai vậy?", f:() => showDlg("guard", "Người bí ẩn.", null, [])},
+    {t:"Nói tiếp đi", f:talkGuard}
   ]);
 }
-function talkDoctor(){
-  doctor.wave = 1.5;
-  showDlg("doctor", "Chào bạn, chị là bác sĩ Khánh Minh. Hôm nay bạn thấy thế nào?", null, [
-    {t:"Vui lắm chị ơi", f:() => showDlg("doctor", "Tuyệt quá! Ra sân nhặt bóng bay đi, đầy năng lượng vậy mà.", null, [])},
-    {t:"Hơi mệt", f:() => showDlg("doctor", "Vậy ra cái ghế dài màu xanh kia nằm thử đi. Lại gần ghế rồi nhấn E.", null, [])},
-    {t:"Kể chuyện vui đi chị", f:() => { const j = JOKES[jokeI++ % JOKES.length]; showDlg("doctor", j[0] + " " + j[1], null, [{t:"Kể nữa", f:() => talkDoctorJoke()}]); }}
-  ]);
-}
-function talkDoctorJoke(){ const j = JOKES[jokeI++ % JOKES.length]; doctor.wave = 1; showDlg("doctor", j[0] + " " + j[1], null, [{t:"Kể nữa", f:talkDoctorJoke}]); }
+function pet(){ bark(3, 1.1); reactions.muc.t = 3; reactions.muc.jump = 0.6; showDlg("muc", "Woof woof woof!! 🐾", "Sướng quá, xoa nữa đi!", []); }
 function talkMuc(){
   bark(2); reactions.muc.t = 2;
-  showDlg("muc", "Woof woof! Woof?", "Chào bạn! Chơi với Mực không?", [
-    {t:"Xoa đầu", f:() => { bark(3, 1.1); reactions.muc.t = 3; reactions.muc.jump = 0.6; showDlg("muc", "Woof woof woof!! 🐾", "Sướng quá, xoa nữa đi!", []); }},
-    {t:"Ném xương", f:() => { closeDlg(); throwBone(muc, "muc"); }},
-    {t:"Bắt tay", f:() => { reactions.muc.paw = 2; bark(1); showDlg("muc", "Woof.", "Đây, chân trước nè. Ngoan chưa?", []); }}
-  ]);
+  if(mucS.hungry) return showDlg("muc", "Woof… woof.", "Bụng đói meo, không đi nổi đâu.", [
+    {t:"Cho Mực ăn xương", f:() => { closeDlg(); mucS.hungry = false; mucS.fedMsg = true; throwBone(muc, "muc"); }},
+    {t:"Để sau", f:closeDlg}]);
+  if(mucS.follow) return showDlg("muc", "Woof!", "Mực đang theo bác sĩ nè. Dẫn Mực vào phòng có bệnh nhân là Mực giúp.", [
+    {t:"Về quầy đi Mực", f:() => { closeDlg(); mucHome(); }},
+    {t:"Xoa đầu", f:pet}]);
+  showDlg("muc", "Woof woof! Woof?", "Bác sĩ cần Mực giúp hả?", [
+    {t:"Đi theo chị, giúp bệnh nhân nhé", f:() => {
+      closeDlg(); const w = new T.Vector3(); muc.group.getWorldPosition(w); puff(w);
+      mucS.follow = true; muc.baseY = 0.2; muc.group.position.set(-6, 0.2, -2.2); bark(2); toast("Mực đi theo bạn. Vào phòng trị liệu thì trò chơi dễ hơn."); }},
+    {t:"Xoa đầu", f:pet},
+    {t:"Ném xương", f:() => { closeDlg(); throwBone(muc, "muc"); }}]);
 }
 function talkBong(){
   bark(2, 1.35); reactions.bong.t = 2;
-  showDlg("bong", "Woof woof. Woof?", "Bông đang trực quầy. Có gì vui không?", [
-    {t:"Xin dấu chân", f:() => { bark(1, 1.35); pawStamp(); showDlg("bong", "WOOF!", "Đóng dấu rồi đó, đem về khoe đi.", []); }},
-    {t:"Khen cái nơ đẹp", f:() => { reactions.bong.spin = 1; bark(3, 1.4); showDlg("bong", "Woof woof woof!", "Nơ xám này Bông tự chọn đó, xoay một vòng cho coi.", []); }},
-    {t:"Ném xương", f:() => { closeDlg(); throwBone(bong, "bong"); }}
-  ]);
+  const w = patients.filter(p => p.state === "waiting");
+  const info = w.length ? "Đang chờ: " + w.map(p => `${p.name} (kiên nhẫn ${Math.round(p.patience)}%)`).join(", ") + "." : "Sổ hẹn chưa có ai đang chờ.";
+  const more = patients.some(p => p.state === "off") ? " Còn khách sắp tới." : "";
+  showDlg("bong", "Woof woof. Woof.", info + more, [
+    {t:"Xin dấu chân", f:() => { bark(1, 1.35); pawStamp(); showDlg("bong", "WOOF!", "Đóng dấu rồi đó.", []); }},
+    {t:"Khen cái nơ", f:() => { reactions.bong.spin = 1; bark(3, 1.4); showDlg("bong", "Woof woof woof!", "Xoay một vòng cho coi nè.", []); }},
+    {t:"Ném xương", f:() => { closeDlg(); throwBone(bong, "bong"); }}]);
 }
 function pawStamp(){
   const d = document.createElement("div"); d.className = "paw"; d.textContent = "🐾";
   d.style.left = (20 + Math.random()*60) + "vw"; d.style.top = (20 + Math.random()*40) + "vh";
   document.body.appendChild(d); setTimeout(() => d.remove(), 1700);
 }
+function talkPatient(p){
+  const ch = [{t:"Mời vào phòng khám", f:() => invite(p)}];
+  if(!p.extended) ch.push({t:"Em chờ chị chút nhé", f:() => { p.extended = true; p.patience = Math.min(100, p.patience + 30); showDlg(p.name, "Dạ, em đợi được ạ.", null, []); }});
+  showDlg(p.name, MOODS[p.mood].line, null, ch);
+}
+function talkSession(p){
+  const h = mucHelping();
+  showDlg(p.name, `Trị liệu: ${MOODS[p.mood].gameName}. ` + (h ? "Mực đang ở đây, sẽ dễ hơn." : "Gọi Mực vào phòng thì dễ hơn."), null, [
+    {t:"Bắt đầu", f:() => { closeDlg(); startSession(p); }},
+    {t:"Khoan đã", f:closeDlg}]);
+}
+
 let bone = null;
 function throwBone(dog, key){
   if(bone) return;
@@ -745,44 +872,212 @@ function throwBone(dog, key){
   player.throwT = 0.5; blip(300, 0.2, "triangle");
 }
 
-let lying = false;
-function lieDown(){
-  lying = true; closeDlg();
-  const wp = new T.Vector3(); couch.getWorldPosition(wp);
-  player.group.position.set(wp.x + 0.4, 1.0, wp.z + 0.05);
-  player.group.rotation.set(0, Math.PI/2, 0);
-  player.group.rotateX(-Math.PI/2);
-  player.group.position.y = 1.0 + 0.3;
-  toast("Thư giãn… Đi lại để đứng dậy");
-  blip(200, 0.6);
-}
-function standUp(){
-  lying = false; player.group.rotation.set(0, 0, 0);
-  player.group.position.set(5.5, 0, 1.6);
+/* ================= mini-games ================= */
+function openMG(html){ const m = $("mg"); m.innerHTML = `<div class="card">${html}</div>`; m.style.display = "grid"; mgOpen = true; closeDlg(); }
+function closeMG(){ $("mg").style.display = "none"; mgOpen = false; if(mg && mg.raf) cancelAnimationFrame(mg.raf); if(mg && mg.cleanup) mg.cleanup(); mg = null; }
+const helpNote = h => h ? `<span class="dogh">🐕 Mực đang giúp</span>` : "";
+
+function gameBreath(p, helped, done){
+  const pass = helped ? 0.55 : 0.7, CYC = 6, TOTAL = 18;
+  openMG(`<h2>Thở cùng ${p.name} ${helpNote(helped)}</h2>
+    <p class="sub">Giữ nút khi vòng tròn <b>phình ra</b> (hít vào), thả nút khi vòng <b>xẹp xuống</b> (thở ra). Đúng nhịp ${Math.round(pass*100)}% là qua.</p>
+    <canvas id="bc" width="240" height="240"></canvas>
+    <div class="big" id="bl">Chuẩn bị…</div>
+    <div class="meter"><i id="bm"></i><b class="mark" style="left:${pass*100}%"></b></div>
+    <button class="hold" id="bh">Giữ để hít vào · Space</button>`);
+  let hold = false, t = -2, good = 0, last = performance.now();
+  const bh = $("bh");
+  const on = e => { if(e && e.preventDefault) e.preventDefault(); hold = true; bh.classList.add("on"); };
+  const off = () => { hold = false; bh.classList.remove("on"); };
+  bh.addEventListener("pointerdown", on); addEventListener("pointerup", off); addEventListener("pointercancel", off);
+  mg = {keydown:k => { if(k === " ") on(); }, keyup:k => { if(k === " ") off(); },
+        cleanup:() => { removeEventListener("pointerup", off); removeEventListener("pointercancel", off); }};
+  const ctx = $("bc").getContext("2d");
+  function loop(now){
+    if(!mg) return;
+    const dt = Math.min(0.1, (now - last)/1000) * (window.__speed || 1); last = now; t += dt;
+    const ph = Math.max(0, t) % CYC, inh = ph < CYC/2;
+    if(window.__autoBreath) hold = inh;
+    if(t >= 0 && t < TOTAL){ if(hold === inh || (ph % (CYC/2)) < 0.45) good += dt; }
+    const k = t < 0 ? 0 : (inh ? ph/(CYC/2) : 1 - (ph - CYC/2)/(CYC/2));
+    const r = 36 + 74*(k*k*(3 - 2*k));
+    ctx.clearRect(0, 0, 240, 240);
+    ctx.fillStyle = "#e8f4fb"; ctx.beginPath(); ctx.arc(120, 120, 112, 0, 6.3); ctx.fill();
+    ctx.fillStyle = hold ? "#5ab8f0" : "#9fd3ef"; ctx.strokeStyle = "#1d2a33"; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(120, 120, r, 0, 6.3); ctx.fill(); ctx.stroke();
+    $("bl").textContent = t < 0 ? `Chuẩn bị… ${Math.ceil(-t)}` : (inh ? "HÍT VÀO" : "THỞ RA") + ` · nhịp ${Math.min(3, Math.floor(t/CYC) + 1)}/3`;
+    $("bm").style.width = (t > 0 ? Math.min(100, good/Math.min(t, TOTAL)*100) : 0) + "%";
+    if(t >= TOTAL){ const score = good/TOTAL; closeMG(); done(score >= pass, `Đúng nhịp ${Math.round(score*100)}%`); return; }
+    mg.raf = requestAnimationFrame(loop);
+  }
+  mg.raf = requestAnimationFrame(loop);
 }
 
-const interact = [
-  {key:"guard", label:"nói chuyện với Người bí ẩn", obj:guard.group, r:3.4, f:talkGuard},
-  {key:"doctor", label:"nói chuyện với BS. Khánh Minh", obj:doctor.group, r:3.6, f:talkDoctor},
-  {key:"muc", label:"chơi với Dược sĩ Mực", obj:muc.group, r:3.2, f:talkMuc},
-  {key:"bong", label:"chơi với Thu ngân Bông", obj:bong.group, r:3.2, f:talkBong},
-  {key:"couch", label:"nằm ghế dài thư giãn", obj:couch, r:2.8, f:lieDown}
+const TALK = [
+  {q:"Dạo này em thấy chẳng có gì vui cả.", a:[
+    ["Chị nghe đây. Kể chị nghe dạo này có chuyện gì nhé.", 1], ["Vui lên đi, có gì đâu mà buồn!", 0], ["Ai chẳng có lúc buồn, kệ nó đi.", 0]]},
+  {q:"Em thấy mình vô dụng quá.", a:[
+    ["Đừng nói vậy, người ta còn khổ hơn em nhiều.", 0], ["Nghe như em đang rất mệt. Điều gì làm em nghĩ vậy?", 1], ["Ừ, thì cố lên thôi.", 0]]},
+  {q:"Em có nên ra ngoài đi dạo không chị?", a:[
+    ["Đi làm gì, ở nhà cho khỏe.", 0], ["Tùy em, chị không biết.", 0], ["Thử 10 phút thôi, dắt Mực đi cùng càng vui.", 1]]}
 ];
+function gameTalk(p, helped, done){
+  let r = 0, ok = 0;
+  function round(){
+    const it = TALK[r]; const opts = shuffle(it.a.slice());
+    if(helped){ const wi = opts.findIndex(o => !o[1]); opts.splice(wi, 1); }
+    openMG(`<h2>Nghe ${p.name} kể ${helpNote(helped)}</h2>
+      <p class="sub">Câu ${r+1}/3 · chọn câu đáp ấm áp nhất. Đúng 2/3 là qua.${helped ? " Mực đã gạt bớt 1 câu dở." : ""}</p>
+      <div class="say">“${it.q}”</div>
+      <div class="opts">${opts.map((o, i) => `<button data-i="${i}" data-g="${o[1]}">${i+1}. ${o[0]}</button>`).join("")}</div>
+      <div class="fb" id="fb"></div>`);
+    const btns = [...document.querySelectorAll("#mg .opts button")];
+    mg = {keydown:k => { const b = btns[+k - 1]; if(b) b.click(); }};
+    btns.forEach(b => b.onclick = () => {
+      if(b.disabled) return; btns.forEach(x => x.disabled = true);
+      const good = b.dataset.g === "1";
+      if(good){ ok++; b.classList.add("good"); blip(700, .15, "triangle"); }
+      else { b.classList.add("bad"); btns.forEach(x => { if(x.dataset.g === "1") x.classList.add("good"); }); blip(180, .2, "square"); }
+      $("fb").textContent = good ? `${p.name} gật đầu, thấy được lắng nghe.` : `${p.name} hơi chùng xuống…`;
+      setTimeout(() => { if(!mgOpen) return; r++; if(r < 3) round(); else { closeMG(); done(ok >= 2, `Đáp hay ${ok}/3 câu`); } }, 1100);
+    });
+  }
+  round();
+}
+
+function gameMemory(p, helped, done){
+  const sym = ["🐕", "🎈", "🏠", "🦴"], deck = shuffle(sym.concat(sym)), LIM = helped ? 70 : 45;
+  let open = [], matched = 0, lock = false, fin = false; const t0 = performance.now();
+  openMG(`<h2>Lật thẻ cùng ${p.name} ${helpNote(helped)}</h2>
+    <p class="sub">Tìm đủ 4 cặp hình giống nhau trong ${LIM} giây.${helped ? " Có Mực nên được thêm giờ." : ""}</p>
+    <div class="timer" id="mt"></div>
+    <div class="grid">${deck.map((s, i) => `<button class="cardb" data-i="${i}"><span>${s}</span></button>`).join("")}</div>`);
+  const finish = ok => { if(fin) return; fin = true; setTimeout(() => { closeMG(); done(ok, ok ? "Tìm đủ 4 cặp!" : "Hết giờ rồi"); }, ok ? 600 : 0); };
+  document.querySelectorAll("#mg .cardb").forEach(b => b.onclick = () => {
+    if(lock || fin || b.classList.contains("up")) return;
+    b.classList.add("up"); open.push(b); blip(500, .06);
+    if(open.length === 2){
+      const [a, c] = open; lock = true;
+      if(deck[a.dataset.i] === deck[c.dataset.i]){
+        a.classList.add("ok"); c.classList.add("ok"); matched++; open = []; lock = false; blip(760, .18, "triangle");
+        if(matched === 4) finish(true);
+      } else setTimeout(() => { a.classList.remove("up"); c.classList.remove("up"); open = []; lock = false; }, 700);
+    }
+  });
+  mg = {keydown(){}};
+  function loop(now){
+    if(!mg || fin) return;
+    const left = LIM - (now - t0)/1000;
+    $("mt").textContent = `⏱ ${Math.max(0, Math.ceil(left))} giây`;
+    if(left <= 0){ finish(false); return; }
+    mg.raf = requestAnimationFrame(loop);
+  }
+  mg.raf = requestAnimationFrame(loop);
+}
+
+function startSession(p){
+  const h = mucHelping();
+  if(h) reactions.muc.t = 30;
+  ({breath:gameBreath, talk:gameTalk, memory:gameMemory})[MOODS[p.mood].game](p, h, (ok, msg) => { toast(msg); finishSession(p, ok, h); });
+}
+function finishSession(p, ok, helped){
+  if(helped){ reactions.muc.t = 0; mucHome(); mucS.hungry = true; setTimeout(() => toast("Mực giúp xong, về quầy nằm. Cho Mực ăn xương thì Mực giúp tiếp.", 3500), 1600); }
+  if(ok){
+    p.stars = Math.max(1, 3 - p.tries); p.result = "happy";
+    standUp(p); p.icon.material.map = ICONS.happy; p.icon.material.needsUpdate = true;
+    chord(); giveBalloon(p);
+    showDlg(p.name, "Em thấy nhẹ người hẳn. Cảm ơn bác sĩ! Tặng chị quả bóng nè.", null, []);
+    leave(p, true);
+  } else {
+    p.tries++;
+    showDlg(p.name, "Em vẫn chưa ổn lắm… mình thử lại nhé bác sĩ?", null, [
+      {t:"Thử lại", f:() => { closeDlg(); startSession(p); }},
+      {t:"Để chị gọi Mực vào đã", f:closeDlg}]);
+  }
+}
+
+const flyers = [];
+function giveBalloon(p){
+  const c = BCOL[(p.i*3 + 1) % BCOL.length], g = new T.Group();
+  const s = mesh(balloonGeo, c, g, 0, 0, 0, new T.MeshStandardMaterial({color:c, roughness:.22})); s.scale.set(1, 1.15, 1);
+  scene.add(g); const st = p.fig.group.position.clone(); st.y = 4; g.position.copy(st);
+  const th = Math.random()*6.28;
+  flyers.push({g, start:st, slot:new T.Vector3(Math.cos(th)*2.3, 2.4 + Math.random(), Math.sin(th)*2.3), c, a:0});
+}
+
+/* ================= HUD ================= */
+function renderTasks(){
+  const st = p => {
+    switch(p.state){
+      case "off": return "Chưa tới";
+      case "arriving": return "Đang tới cổng";
+      case "waiting": return `Đang chờ <span class="bar"><i style="width:${p.patience}%;background:${p.patience < 35 ? "#e5484d" : "#2fae5a"}"></i></span>`;
+      case "toOffice": return "Đang vào phòng";
+      case "session": return "Nằm ghế dài, chờ trị liệu";
+      default: return p.result === "happy" ? "⭐".repeat(p.stars) + " vui rồi" : "Bỏ về 😢";
+    }
+  };
+  $("tasklist").innerHTML = patients.map(p => `<li class="${p.result === "happy" ? "ok" : p.result === "left" ? "bad" : ""}">
+    <b>${p.state === "off" ? "???" : p.name}</b>${p.state === "off" ? "" : " · " + MOODS[p.mood].word}<br><small>${st(p)}</small></li>`).join("") +
+    `<li class="dog">Mực: ${mucS.hungry ? "đói, cần xương 🦴" : mucS.follow ? "đang đi theo bạn" : "nằm ở quầy"}</li>`;
+}
+function checkEnd(){
+  if(dayOver || !patients.every(p => p.state === "gone")) return;
+  dayOver = true; setTimeout(showSummary, 900);
+}
+function showSummary(){
+  const stars = patients.reduce((s, p) => s + p.stars, 0), helped = patients.filter(p => p.result === "happy").length;
+  const msg = helped === 3 ? "Một ngày tuyệt vời!" : helped ? "Ngày làm việc khá ổn." : "Hôm nay hơi vất vả…";
+  openMG(`<h2>Hết ngày làm việc</h2>
+    <p class="sub">${msg} BS. Khánh Minh giúp được ${helped}/3 bệnh nhân.</p>
+    <ul class="sum">${patients.map(p => `<li><b>${p.name}</b> (${MOODS[p.mood].word}): ${p.result === "happy" ? "⭐".repeat(p.stars) : "bỏ về 😢"}</li>`).join("")}</ul>
+    <div class="big">${stars}/9 ⭐</div>
+    <div class="row">${helped && !lifted ? `<button class="btnp" id="sfly">🎈 Thả nhà bay mừng</button>` : ""}<button class="btnp alt" id="sre">Chơi ngày mới</button></div>`);
+  mg = {keydown:k => { if(k === "enter") ($("sfly") || $("sre")).click(); }};
+  if($("sfly")) $("sfly").onclick = () => { closeMG(); startFlight(); };
+  $("sre").onclick = () => location.reload();
+}
+function showIntro(){
+  openMG(`<h2>Bạn là BS. Khánh Minh</h2>
+    <p class="sub">Hôm nay phòng khám có 3 bệnh nhân. Người bí ẩn ở cổng sẽ báo khi có khách.</p>
+    <ol class="how">
+      <li>Ra sảnh, đứng cạnh bệnh nhân nhấn <b>E</b> để mời vào phòng.</li>
+      <li>Bệnh nhân nằm lên ghế dài. Lại gần nhấn <b>E</b> để trị liệu bằng một trò chơi nhỏ.</li>
+      <li>Gọi <b>Mực</b> (quầy xanh) đi theo vào phòng, trò chơi sẽ dễ hơn. Giúp xong Mực đói, cho ăn xương mới giúp tiếp.</li>
+      <li>Ai chờ lâu quá sẽ bỏ về. <b>Bông</b> giữ sổ hẹn và sủa khi có người sắp hết kiên nhẫn.</li>
+    </ol>
+    <p class="sub">WASD/mũi tên để đi · Shift chạy · kéo chuột xoay camera · E tương tác</p>
+    <div class="row"><button class="btnp" id="go">Bắt đầu ngày làm việc</button></div>`);
+  mg = {keydown:k => { if(k === "enter" || k === " ") $("go").click(); }};
+  $("go").onclick = () => { ac(); closeMG(); started = true; renderTasks(); toast("Ngày làm việc bắt đầu!"); };
+}
+
+/* ================= interactions ================= */
+function getInteract(){
+  const L = [
+    {key:"guard", label:"nói chuyện với Người bí ẩn", obj:guard.group, r:3.4, f:talkGuard},
+    {key:"muc", label:mucS.hungry ? "cho Mực ăn" : "gọi Mực", obj:muc.group, r:3.2, f:talkMuc},
+    {key:"bong", label:"xem sổ hẹn của Bông", obj:bong.group, r:3.2, f:talkBong}
+  ];
+  patients.forEach(p => {
+    if(p.state === "waiting") L.push({key:p.name, label:`nói chuyện với ${p.name}`, obj:p.fig.group, r:2.8, prio:1, f:() => talkPatient(p)});
+    if(p.state === "session") L.push({key:p.name, label:`trị liệu cho ${p.name} · ${MOODS[p.mood].gameName}`, obj:p.fig.group, r:4.2, prio:3, f:() => talkSession(p)});
+  });
+  return L;
+}
 const _v = new T.Vector3();
 function nearest(){
-  let best = null, bd = 1e9;
-  const pp = player.group.position;
-  interact.forEach(it => {
+  let best = null, bd = 1e9; const pp = player.group.position;
+  getInteract().forEach(it => {
     it.obj.getWorldPosition(_v);
-    const d = Math.hypot(_v.x - pp.x, _v.z - pp.z);
-    if(d < it.r && d < bd){ bd = d; best = it; }
+    const d = Math.hypot(_v.x - pp.x, _v.z - pp.z), sc = d - (it.prio || 0);
+    if(d < it.r && sc < bd){ bd = sc; best = it; }
   });
   return best;
 }
 function doInteract(){
   ac();
-  if(flight.on) return;
-  if(lying){ standUp(); return; }
+  if(flight.on || mgOpen || !started) return;
   const n = nearest();
   if(dlgOpen && !dlgChoices.length && (!n || n.key === dlgOpen)){ closeDlg(); return; }
   if(n) n.f();
@@ -791,16 +1086,17 @@ function doInteract(){
 /* ================= input ================= */
 const keys = {};
 addEventListener("keydown", e => {
-  const k = e.key.toLowerCase(); keys[k] = true;
+  const k = e.key.toLowerCase();
+  if(mgOpen){ if(k === " " || k.startsWith("arrow")) e.preventDefault(); if(!e.repeat && mg && mg.keydown) mg.keydown(k); return; }
+  keys[k] = true;
   if(k === "e" || k === " "){ e.preventDefault(); if(!e.repeat) doInteract(); }
-  if(k === "f" && $("lift").style.display === "block") startFlight();
   if(dlgOpen && /^[1-4]$/.test(k) && dlgChoices[+k-1]) dlgChoices[+k-1].f();
   if(k === "escape") closeDlg();
-  if(["arrowup","arrowdown","arrowleft","arrowright"].includes(k)) e.preventDefault();
+  if(k.startsWith("arrow")) e.preventDefault();
 });
-addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+addEventListener("keyup", e => { const k = e.key.toLowerCase(); keys[k] = false; if(mgOpen && mg && mg.keyup) mg.keyup(k); });
+addEventListener("blur", () => { for(const k in keys) keys[k] = false; });
 $("act").addEventListener("pointerdown", e => { e.preventDefault(); doInteract(); });
-$("lift").onclick = () => startFlight();
 
 let yaw = 0, pitch = 0.42, dist = 17, camYaw = 0, camPitch = 0.42, camDist = 17;
 const cv = renderer.domElement;
@@ -832,22 +1128,22 @@ if(matchMedia("(pointer:coarse)").matches) document.body.classList.add("touch");
 
 /* ================= flight finale ================= */
 const flight = {on:false, t:0};
+let lifted = false;
 function startFlight(){
   if(flight.on) return;
-  closeDlg(); if(lying) standUp();
+  closeDlg(); if(mucS.follow) mucHome();
   flight.on = true; flight.t = 0; lifted = true;
   player.group.position.set(-5, 0, 8.3); player.group.rotation.set(0, 0, 0);
   pitch = 0.25; dist = 30;
-  renderTasks(); chord(); toast("Bay thôi! 🎈");
+  chord(); toast("Bay thôi! 🎈");
   setTimeout(() => bark(3), 600); setTimeout(() => bark(3, 1.35), 900);
 }
 
 /* ================= main loop ================= */
 const clock = new T.Clock();
-const camTarget = new T.Vector3(-5, 2, 25);
-let walkPhase = 0, insideBlend = 0;
-renderTasks();
-$("loading").remove();
+const camTarget = new T.Vector3(5.5, 2, -1.2);
+let walkPhase = 0, insideBlend = 0, hudT = 0, guardT = 0;
+const GSPOTS = [[-1.2, 17.4], [18, 12.5], [-20, -11], [15, -12], [-21, 12], [10, 10.5], [-14, -12]];
 
 function collide(p){
   const r = 0.55;
@@ -856,7 +1152,7 @@ function collide(p){
     const dx = p.x - cx, dz = p.z - cz, d2 = dx*dx + dz*dz;
     if(d2 < r*r){
       if(d2 > 1e-8){ const d = Math.sqrt(d2); p.x = cx + dx/d*r; p.z = cz + dz/d*r; }
-      else { // inside box: push to nearest edge
+      else {
         const opts = [[b.x0 - r - p.x, 0], [b.x1 + r - p.x, 0], [0, b.z0 - r - p.z], [0, b.z1 + r - p.z]];
         opts.sort((a, c) => Math.abs(a[0]+a[1]) - Math.abs(c[0]+c[1])); p.x += opts[0][0]; p.z += opts[0][1];
       }
@@ -864,18 +1160,50 @@ function collide(p){
   }
   p.x = Math.max(-40, Math.min(40, p.x)); p.z = Math.max(-13.4, Math.min(34, p.z));
 }
+function turnTo(g, target, k){ let diff = target - g.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff)); g.rotation.y += diff * Math.min(1, k); }
 function lookAtPlayer(npc, base, dt, range){
   const g = npc.group, wp = new T.Vector3(); g.getWorldPosition(wp);
   const pp = player.group.position;
   const d = Math.hypot(pp.x - wp.x, pp.z - wp.z);
-  const target = d < range ? Math.atan2(pp.x - wp.x, pp.z - wp.z) : base;
-  let diff = target - g.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-  g.rotation.y += diff * Math.min(1, dt*4);
+  turnTo(g, d < range ? Math.atan2(pp.x - wp.x, pp.z - wp.z) : base, dt*4);
+}
+
+function updPatients(dt, t, live){
+  patients.forEach(p => {
+    if(p.state === "off"){ if(live && dayT >= ARRIVE[p.i]) spawn(p); return; }
+    if(p.state === "gone") return;
+    const g = p.fig.group; let moving = false;
+    if(p.path.length && !mgOpen){
+      const tg = p.path[0], dx = tg.x - g.position.x, dz = tg.z - g.position.z, d = Math.hypot(dx, dz);
+      if(d < 0.1){ p.path.shift(); if(!p.path.length && p.onArrive){ const cb = p.onArrive; p.onArrive = null; cb(); } }
+      else { const s = Math.min(d, 3.6*dt); g.position.x += dx/d*s; g.position.z += dz/d*s; turnTo(g, Math.atan2(dx, dz), dt*10); moving = true; p.walk += dt*5.8; }
+    }
+    if(!p.lying){
+      const sw = moving ? Math.sin(p.walk)*0.7 : 0;
+      p.fig.legL.rotation.x = sw; p.fig.legR.rotation.x = -sw; p.fig.armL.rotation.x = -sw;
+      p.fig.armR.rotation.x = (p.result === "happy") ? -2.6 + Math.sin(t*9)*0.3 : sw;
+      if(p.state === "waiting") lookAtPlayer(p.fig, 0, dt, 7);
+    }
+    if(p.state === "waiting" && live){
+      p.patience -= dt*100/95;
+      if(p.patience < 35 && !p.warned){ p.warned = true; bark(3, 1.35); reactions.bong.t = 3; toast(`Bông sủa: ${p.name} sắp bỏ về!`, 3200); }
+      if(p.patience <= 0){
+        p.patience = 0; p.result = "left"; toast(`${p.name} chờ lâu quá, bỏ về rồi 😢`, 3200); blip(220, .4, "square");
+        if(dlgOpen === p.name) closeDlg();
+        leave(p, false);
+      }
+    }
+    p.holder.position.set(g.position.x, p.lying ? 0.2 : g.position.y, p.lying ? g.position.z : g.position.z);
+    if(p.lying) p.holder.position.x = g.position.x - 1.6;
+    p.icon.position.y = 5.7 + Math.sin(t*2.2 + p.i)*0.12;
+  });
 }
 
 function frame(){
-  const dt = Math.min(0.05, clock.getDelta()), t = clock.elapsedTime;
+  const dt = Math.min(0.05, clock.getDelta()) * (window.__speed || 1), t = clock.elapsedTime;
   const pg = player.group, pos = pg.position;
+  const live = started && !mgOpen && !dayOver;
+  if(live) dayT += dt;
 
   /* movement */
   let mx = 0, mz = 0;
@@ -884,25 +1212,22 @@ function frame(){
   mx += joy.x; mz -= joy.y;
   const mag = Math.min(1, Math.hypot(mx, mz));
   let moving = false;
-  if(!flight.on && mag > 0.1){
-    if(lying) standUp();
+  if(!flight.on && !mgOpen && started && mag > 0.1){
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
     let dx = fx*mz + rx*mx, dz = fz*mz + rz*mx; const L = Math.hypot(dx, dz); dx /= L; dz /= L;
     const sp = (keys.shift ? 11 : 6.5) * mag;
     pos.x += dx*sp*dt; pos.z += dz*sp*dt;
     collide(pos);
-    let target = Math.atan2(dx, dz), diff = target - pg.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    pg.rotation.y += diff * Math.min(1, dt*12);
+    turnTo(pg, Math.atan2(dx, dz), dt*12);
     walkPhase += dt * sp * 1.6; moving = true;
-    if(dlgOpen){ const it = interact.find(i => i.key === dlgOpen); if(it){ it.obj.getWorldPosition(_v); if(Math.hypot(_v.x-pos.x, _v.z-pos.z) > it.r + 2) closeDlg(); } }
+    if(dlgOpen){ const it = getInteract().find(i => i.key === dlgOpen); if(it){ it.obj.getWorldPosition(_v); if(Math.hypot(_v.x-pos.x, _v.z-pos.z) > it.r + 2) closeDlg(); } }
   }
-  if(!lying){
+  {
     const sw = moving ? Math.sin(walkPhase)*0.7 : 0;
     player.legL.rotation.x += (sw - player.legL.rotation.x)*0.3; player.legR.rotation.x += (-sw - player.legR.rotation.x)*0.3;
     let aL = -sw, aR = sw;
-    if(player.salute > 0){ player.salute -= dt; aR = -2.6; }
     if(player.throwT > 0){ player.throwT -= dt; aR = -2.8 + (0.5 - player.throwT)*5; }
-    if(flight.on){ aR = -2.6 + Math.sin(t*8)*0.4; }
+    if(flight.on) aR = -2.6 + Math.sin(t*8)*0.4;
     player.armL.rotation.x += (aL - player.armL.rotation.x)*0.3; player.armR.rotation.x += (aR - player.armR.rotation.x)*0.3;
     if(!flight.on) pos.y = 0;
   }
@@ -911,29 +1236,50 @@ function frame(){
   const inside = !flight.on && pos.x > -10 && pos.x < 10 && pos.z > -7 && pos.z < 6.9;
   insideBlend += ((inside ? 1 : 0) - insideBlend) * Math.min(1, dt*6);
   roofGroup.visible = insideBlend < 0.5;
-  ["front"].forEach(() => Object.keys(MATS).forEach(k => { if(k.endsWith("front")) MATS[k].opacity = 1 - insideBlend*0.82; }));
-  cluster.visible = true;
+  Object.keys(MATS).forEach(k => { if(k.endsWith("front")) MATS[k].opacity = 1 - insideBlend*0.82; });
 
-  /* NPC idle */
+  /* patients */
+  updPatients(dt, t, live);
+
+  /* guard: appears / disappears */
+  if(live && !flight.on){
+    guardT += dt;
+    const gp = guard.group.position;
+    if(guardT > 30 && Math.hypot(pos.x - gp.x, pos.z - gp.z) > 10 && !patients.some(p => p.state === "arriving")){
+      guardT = 0; puff(gp.clone());
+      let s; do { s = GSPOTS[Math.floor(Math.random()*GSPOTS.length)]; } while(Math.abs(s[0] - gp.x) < 0.1 && Math.abs(s[1] - gp.z) < 0.1);
+      gp.set(s[0], 0, s[1]); guard.home = Math.atan2(-s[0], -s[1]); guard.group.rotation.y = guard.home; puff(gp.clone());
+    }
+  }
   lookAtPlayer(guard, guard.home, dt, 7);
-  lookAtPlayer(doctor, doctor.home, dt, 8);
   guard.armR.rotation.x = guard.salute > 0 ? (guard.salute -= dt, -2.6) : Math.sin(t*1.3)*0.05;
-  guard.armL.rotation.x = 0;
-  doctor.armR.rotation.x = doctor.wave > 0 ? (doctor.wave -= dt, -2.4 + Math.sin(t*14)*0.35) : Math.sin(t*1.1)*0.06;
-  doctor.armR.rotation.z = doctor.wave > 0 ? 0.4 : 0;
-  doctor.head.rotation.z = Math.sin(t*0.9)*0.05;
-  [[muc, "muc", 1], [bong, "bong", 1.3]].forEach(([dog, k]) => {
+
+  /* Mực follow */
+  let mucMoving = false;
+  if(mucS.follow && !flight.on){
+    const g = muc.group, ry = pg.rotation.y;
+    const tx = pos.x - Math.sin(ry)*1.7 + Math.cos(ry)*1.0, tz = pos.z - Math.cos(ry)*1.7 - Math.sin(ry)*1.0;
+    const dx = tx - g.position.x, dz = tz - g.position.z, d = Math.hypot(dx, dz);
+    if(d > 12){ g.position.x = tx; g.position.z = tz; }
+    else if(d > 0.3){ const sp = Math.min(11, d*3.5); g.position.x += dx/d*sp*dt; g.position.z += dz/d*sp*dt; turnTo(g, Math.atan2(dx, dz), dt*10); mucMoving = true; }
+    else lookAtPlayer(muc, g.rotation.y, dt, 6);
+  }
+
+  /* dogs idle */
+  [[muc, "muc"], [bong, "bong"]].forEach(([dog, k]) => {
     const R = reactions[k];
-    if(!R.catch) lookAtPlayer(dog, dog.home, dt, 6);
+    if(!(k === "muc" && mucS.follow)) lookAtPlayer(dog, dog.home, dt, 6);
     const ex = R.t > 0 ? (R.t -= dt, 1) : 0;
-    dog.tail.rotation.y = Math.sin(t*(ex ? 22 : 7)) * (ex ? 0.8 : 0.35);
-    dog.tongue.visible = ex || Math.sin(t*0.7) > 0.3;
+    const sleepy = k === "muc" && mucS.hungry;
+    dog.tail.rotation.y = sleepy ? 0 : Math.sin(t*(ex ? 22 : 7)) * (ex ? 0.8 : 0.35);
+    dog.tongue.visible = !sleepy && (ex || Math.sin(t*0.7) > 0.3);
+    dog.head.rotation.x = sleepy ? 0.45 : Math.sin(t*1.6)*0.06;
     let jy = 0;
     if(R.jump > 0){ R.jump -= dt; jy = Math.sin((0.6 - R.jump)/0.6*Math.PI)*0.9; }
-    dog.group.position.y = 1.1 + jy + Math.abs(Math.sin(t*(ex?10:2)))*(ex?0.12:0.03);
+    dog.group.position.y = dog.baseY + jy + (sleepy ? 0 : Math.abs(Math.sin(t*(ex ? 10 : 2)))*(ex ? 0.12 : 0.03));
     if(R.spin > 0){ R.spin -= dt; dog.group.rotation.y += dt*Math.PI*2; }
-    dog.legs[0].rotation.x = R.paw > 0 ? (R.paw -= dt, -1.4) : 0;
-    dog.head.rotation.x = Math.sin(t*1.6)*0.06;
+    if(k === "muc" && mucMoving) dog.legs.forEach((l, i) => l.rotation.x = Math.sin(t*16 + ((i === 0 || i === 3) ? 0 : Math.PI))*0.6);
+    else dog.legs.forEach((l, i) => l.rotation.x = (i === 0 && R.paw > 0) ? (R.paw -= dt, -1.4) : 0);
   });
 
   /* bone */
@@ -946,41 +1292,30 @@ function frame(){
       bone.g.rotation.z += dt*14;
       if(k > 0.55 && !bone.jumped){ bone.jumped = true; reactions[bone.key].jump = 0.6; }
     } else {
-      if(!bone.caught){ bone.caught = true; bark(2, bone.key === "bong" ? 1.35 : 1); reactions[bone.key].t = 3;
-        showDlg(bone.key, "Woof! Mmmf.", "Bắt được rồi! Ngon ghê.", []); }
-      bone.g.position.copy(to).add(new T.Vector3(0, -0.15, 0)); bone.g.position.add(new T.Vector3(Math.sin(bone.dog.group.rotation.y)*0.55, 0, Math.cos(bone.dog.group.rotation.y)*0.55));
+      if(!bone.caught){
+        bone.caught = true; bark(2, bone.key === "bong" ? 1.35 : 1); reactions[bone.key].t = 3;
+        const fed = bone.key === "muc" && mucS.fedMsg; if(fed) mucS.fedMsg = false;
+        showDlg(bone.key, "Woof! Mmmf.", fed ? "No rồi! Mực sẵn sàng giúp tiếp." : "Bắt được rồi! Ngon ghê.", []);
+      }
+      bone.g.position.copy(to).add(new T.Vector3(Math.sin(bone.dog.group.rotation.y)*0.55, -0.15, Math.cos(bone.dog.group.rotation.y)*0.55));
       bone.g.rotation.set(0, bone.dog.group.rotation.y + Math.PI/2, 0);
       if(bone.t > bone.dur + 2.5){ scene.remove(bone.g); bone = null; }
     }
   }
 
   /* balloons */
-  clusterBalloons.forEach(b => {
-    const u = b.userData; b.position.x = u.base.x + Math.sin(t*0.8 + u.phase)*0.12; b.position.y = u.base.y + Math.sin(t*1.1 + u.phase)*0.15;
-    if(u.fly){ u.fly -= dt; }
-  });
+  clusterBalloons.forEach(b => { const u = b.userData; b.position.x = u.base.x + Math.sin(t*0.8 + u.phase)*0.12; b.position.y = u.base.y + Math.sin(t*1.1 + u.phase)*0.15; });
   rebuildStrings();
-  strays.forEach(b => {
-    const u = b.userData;
-    if(u.got){
-      if(u.anim !== undefined){
-        u.anim += dt; const k = Math.min(1, u.anim/1.6);
-        const tgt = new T.Vector3(); cluster.getWorldPosition(tgt); tgt.add(u.slot);
-        b.position.lerpVectors(u.start, tgt, k*k*(3-2*k)); b.position.y += Math.sin(k*Math.PI)*4;
-        if(k >= 1){ scene.remove(b); addClusterBalloon(u.color, u.slot); delete u.anim; }
-      }
-      return;
-    }
-    b.position.y = 2.6 + Math.sin(t*1.5 + u.phase)*0.35; b.rotation.y = Math.sin(t*0.5 + u.phase)*0.4;
-    if(Math.hypot(b.position.x - pos.x, b.position.z - pos.z) < 1.7 && !flight.on){
-      u.got = true; u.anim = 0; u.start = b.position.clone();
-      const th = Math.random()*6.28; u.slot = new T.Vector3(Math.cos(th)*2.4, 2.2 + Math.random(), Math.sin(th)*2.4);
-      collected++; renderTasks(); blip(660, 0.18, "triangle"); setTimeout(() => blip(990, 0.2, "triangle"), 110);
-      toast(collected >= 6 ? "Đủ 6 quả! " + (talked.size === 4 ? "Nhấn F để thả nhà bay." : "Chào đủ 4 người là cho nhà bay được.") : `Bóng bay ${collected}/6`);
-    }
-  });
-
-  /* clouds */
+  for(let i = flyers.length - 1; i >= 0; i--){
+    const f = flyers[i]; f.a += dt; const k = Math.min(1, f.a/2.2);
+    const tgt = new T.Vector3(); cluster.getWorldPosition(tgt); tgt.add(f.slot);
+    f.g.position.lerpVectors(f.start, tgt, k*k*(3 - 2*k)); f.g.position.y += Math.sin(k*Math.PI)*4;
+    if(k >= 1){ scene.remove(f.g); addClusterBalloon(f.c, f.slot); flyers.splice(i, 1); }
+  }
+  for(let i = puffs.length - 1; i >= 0; i--){
+    const p = puffs[i]; p.a += dt; p.m.scale.setScalar(1 + p.a*3); p.m.material.opacity = Math.max(0, 0.9*(1 - p.a/0.7));
+    if(p.a > 0.7){ scene.remove(p.m); puffs.splice(i, 1); }
+  }
   clouds.forEach((c, i) => { c.position.x += dt*(0.6 + i*0.07); if(c.position.x > 100) c.position.x = -100; });
 
   /* flight */
@@ -990,18 +1325,18 @@ function frame(){
     if(f < 7) y = 26 * (1 - Math.cos(Math.min(1, f/7)*Math.PI))/2;
     else if(f < 13) y = 26 + Math.sin((f-7)*1.2)*0.8;
     else if(f < 20) y = 26 * (1 + Math.cos(Math.min(1, (f-13)/7)*Math.PI))/2;
-    else { y = 0; flight.on = false; pitch = 0.42; dist = 17; renderTasks(); toast("Hạ cánh an toàn. Woof woof!"); bark(2); }
+    else { y = 0; flight.on = false; pitch = 0.42; dist = 17; toast("Hạ cánh an toàn. Woof woof!"); bark(2); setTimeout(showSummary, 2200); }
     house.position.y = y; house.rotation.z = Math.sin(f*0.9)*0.03*(y/26); house.rotation.x = Math.sin(f*0.7)*0.02*(y/26);
     pos.y = y + 0.18;
     if(f < 13) yaw += dt*0.25;
-  } else { house.position.y = 0; house.rotation.set(0,0,0); }
+  } else { house.position.y = 0; house.rotation.set(0, 0, 0); }
 
-  /* prompt */
-  const n = (!flight.on && !lying) ? nearest() : null;
+  /* prompt + HUD */
+  const n = (!flight.on && !mgOpen && started) ? nearest() : null;
   const pr = $("prompt");
-  if(lying){ pr.style.display = "block"; pr.innerHTML = "<kbd>E</kbd>đứng dậy"; }
-  else if(n && !(dlgOpen && dlgOpen === n.key)){ pr.style.display = "block"; pr.innerHTML = `<kbd>E</kbd>${n.label}`; }
+  if(n && !(dlgOpen && dlgOpen === n.key)){ pr.style.display = "block"; pr.innerHTML = `<kbd>E</kbd>${n.label}`; }
   else pr.style.display = "none";
+  hudT += dt; if(hudT > 0.25){ hudT = 0; renderTasks(); }
 
   /* camera */
   const wantPitch = Math.max(pitch, 0.42 + insideBlend*0.55);
@@ -1020,10 +1355,15 @@ function frame(){
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
+renderTasks();
+$("loading").remove();
+showIntro();
 requestAnimationFrame(frame);
 
 addEventListener("resize", () => { camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
-window.__game = {player, keys, talked, get collected(){return collected}, strays, startFlight, doInteract, house, flight, get dlg(){return dlgOpen}};
+window.__game = {player, patients, mucS, muc, guard, doInteract, startFlight, flight,
+  get dlg(){ return dlgOpen; }, get mgOpen(){ return mgOpen; }, get dayOver(){ return dayOver; }, get dayT(){ return dayT; }, get started(){ return started; },
+  setDay(v){ dayT = v; }, choose(i){ if(dlgChoices[i]) dlgChoices[i].f(); }};
 })();
 </script>
 </body>
